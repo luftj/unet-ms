@@ -1,5 +1,7 @@
 # unet-ms
 
+![example segmentation](docs/title_fig.jpg)
+
 Topographic map segmentation with u-nets.
 
 WIP.
