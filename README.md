@@ -10,9 +10,9 @@ WIP.
 
 ## Installation
 
-After cloning this repo, get the submodule containing the unet implementation with
+Cloning this repo recursively to get the submodule containing the unet implementation with
 
-```git submodule init```
+```git clone --recursive git@github.com:luftj/unet-ms.git```
 
 Requires
 * Python3 (tested with 3.9.1)

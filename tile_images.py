@@ -33,8 +33,8 @@ if __name__ == "__main__":
 
     input_path = args.input #"E:/data/deutsches_reich/train/"
     out_dir = args.outdir #"E:/data/deutsches_reich/train/tiles3/"
-    os.makedirs(out_dir+"masks", exist_ok=True)
-    os.makedirs(out_dir+"imgs", exist_ok=True)
+    os.makedirs(out_dir+"/masks", exist_ok=True)
+    os.makedirs(out_dir+"/imgs", exist_ok=True)
     file_ext = [".tif",".tiff",".jpg",".jpeg",".png",".bmp"]
 
     if os.path.isdir(input_path):
