@@ -2,23 +2,32 @@ import os
 import argparse
 from PIL import Image
 
-def tile_and_save(image_file_path, out_dir, tile_size = 512):
+save_by_id = False
+
+def tile_and_save(image_file_path, out_dir, tile_size=512, x_offset=0, y_offset=0):
     img = Image.open(image_file_path)
     width, height = img.size
     
     tile_idx = 0
-    for x in range(width//tile_size): # this might not produce a tile for the right and lower borders -> mirror image to fill the last full size tile?
-        for y in range(height//tile_size):
-            box = (x*tile_size,y*tile_size,x*tile_size+tile_size,y*tile_size+tile_size)
-            # print(box)
+    for x in range((width-x_offset)//tile_size): # this might not produce a tile for the right and lower borders -> mirror image to fill the last full size tile?
+        for y in range((height-y_offset)//tile_size):
+            x_pos = x*tile_size + x_offset
+            y_pos = y*tile_size + y_offset
+            box = (x_pos, y_pos, x_pos+tile_size, y_pos+tile_size)
             tile = img.crop(box)
             out_name = os.path.splitext(os.path.basename(image_file_path))[0]
             if "mask" in out_name:
                 out_name = out_name.replace("_mask","")
-                out_file = "%s/masks/%s_tile%03d.tif" % (out_dir,out_name,tile_idx) 
+                if save_by_id:
+                    out_file = "%s/masks/%s_tile%03d.tif" % (out_dir, out_name, tile_idx)
+                else:
+                    out_file = "%s/masks/%s_tile%d-%d.tif" % (out_dir, out_name, x_pos, y_pos) 
                 tile.save(out_file)
             else:
-                out_file = "%s/imgs/%s_tile%03d.tif" % (out_dir,out_name,tile_idx) 
+                if save_by_id:
+                    out_file = "%s/imgs/%s_tile%03d.tif" % (out_dir, out_name, tile_idx)
+                else:
+                    out_file = "%s/imgs/%s_tile%d-%d.tif" % (out_dir, out_name, x_pos, y_pos)
                 tile.save(out_file)
             tile_idx += 1
     print("dims:",x,y)
@@ -28,6 +37,8 @@ if __name__ == "__main__":
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('input', help='input image or directory')
     parser.add_argument('outdir', help='output directory')
+    parser.add_argument('x_offset', help='', type=int, default=0)
+    parser.add_argument('y_offset', help='', type=int, default=0)
     args = parser.parse_args()
     # e.g. python tile_images.py /e/data/deutsches_reich/train/ /e/data/deutsches_reich/train/tiles3/
 
@@ -45,7 +56,7 @@ if __name__ == "__main__":
             if not os.path.splitext(file)[-1] in file_ext:
                 print(os.path.splitext(file)[-1])
                 continue
-            tile_and_save(input_path+file, out_dir)
+            tile_and_save(input_path+file, out_dir, x_offset=args.x_offset, y_offset=args.y_offset)
     else:
-        # process singel input file
-        tile_and_save(input_path, out_dir)
+        # process single input file
+        tile_and_save(input_path, out_dir, x_offset=args.x_offset, y_offset=args.y_offset)
