@@ -16,6 +16,7 @@ Cloning this repo recursively to get the submodule containing the unet implement
 
 Requires
 * Python3 (tested with 3.9.1)
+* GDAL (for generating synthetic training data)
 
 ```$ python3 -m pip install -r requirements.txt``` (will also install requirements of the submodule)
 
