@@ -5,21 +5,37 @@ if [ $# -eq 0 ]; then
     exit 1
 fi
 
+if [ $# -lt 2 ]; then
+    echo "error: please provide model directory!"
+    exit 1
+fi
+
+if [ $# -lt 3 ]; then
+    echo "error: please provide output directory!"
+    exit 1
+fi
+
 infile="$1"
-exp_no="23"
-epoch="148"
-outdir="/e/experiments/deepseg_models/checkpoints$exp_no/scale_1/prediction_e""$epoch"_$(basename "$infile")
+#exp_no="23"
+exp_no=$(ls -d -1 E:/experiments/deepseg_models/checkpoints* | sed -e "s/[^0-9]*//" | sort -nr | head -n 1)
+echo "Experiment no.:" $exp_no
+#epoch="44"
+epoch=$(ls -d -1 E:/experiments/deepseg_models/checkpoints$exp_no/*.pth | sed -e "s/.*\///" | sed -e "s/[^0-9]*//g" | sort -nr | head -n 1)
+echo "Epoch:" $epoch
+#outdir="/e/experiments/deepseg_models/checkpoints$exp_no/test/prediction_e""$epoch"_$(basename "$infile")
+outdir="$3/$exp_no/prediction_e""$epoch"_$(basename "$infile")
+echo $outdir
+
 mkdir -p "$outdir"/tiles
 python tile_images.py "$infile" "$outdir/tiles/"
+
 cd Pytorch-UNet
-# models=(E:/experiments/deepseg_models/checkpoints$exp_no/CP_epoch*.pth)
-# model_path=${models[-1]}
-model_path=E:/experiments/deepseg_models/checkpoints$exp_no/CP_epoch$epoch.pth
+model_path="$2/checkpoints$exp_no/CP_epoch$epoch.pth"
 echo "using model at" $model_path
 
 echo "starting prediction..."
 for file in "$outdir"/tiles/imgs/*.tif ; do # todo: trouble with spaces in file names?
-    python predict.py -m "$model_path" -i "$file" -s 1
+    python predict.py -m "$model_path" -i "$file" #-s 1
 done
 # python predict.py -m $model_path -i $(ls $outdir/tiles/imgs/*.tif) #-s 1
 cd ..

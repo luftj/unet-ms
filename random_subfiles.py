@@ -10,6 +10,7 @@ if __name__ == "__main__":
     parser.add_argument('outdir', help='output directory')
     parser.add_argument('-n','--num_images', help='how many images to sample', type=int, default=10)
     parser.add_argument('-x','--exclude', help='text file with images to exclude')
+    parser.add_argument('--nomask', help='set this flags, if no masks should be copied', action="store_true")
     args = parser.parse_args()
 
     # num_images = 1000
@@ -37,13 +38,17 @@ if __name__ == "__main__":
     else:
         print("not tiles")
         os.makedirs(outdir, exist_ok=True)
-        files = sorted([f for f in os.listdir(args.input) if "_mask" in f and not f in exclude_list])
+        if args.nomask:
+            files = sorted([f for f in os.listdir(args.input) if not "_mask" in f and not f in exclude_list])
+        else:
+            files = sorted([f for f in os.listdir(args.input) if "_mask" in f and not f in exclude_list])
 
         sampled_images = random.sample(files, args.num_images)
 
         for img in sampled_images:
             print(img)
             shutil.copyfile(args.input+img, outdir+"/"+img)
-            shutil.copyfile(args.input+img.replace("_mask",""), outdir+"/"+img.replace("_mask",""))
+            if not args.nomask:
+                shutil.copyfile(args.input+img.replace("_mask",""), outdir+"/"+img.replace("_mask",""))
 
 

@@ -36,8 +36,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     maps_dir = args.input#"E:/data/usgs/100k"
-    imgs_dir = args.outdir+"/imgs/"#"E:/data/usgs/100k/imgs"
-    masks_dir = args.outdir+"/masks/"#"E:/data/usgs/100k/masks"
+    imgs_dir = args.outdir#+"/imgs/"#"E:/data/usgs/100k/imgs"
+    # masks_dir = args.outdir+"/masks/"#"E:/data/usgs/100k/masks"
     # quadrangles_file = "E:/data/usgs/indices/CellGrid_30X60Minute.json"
     # quadrangles_key = "CELL_NAME"
     # quad_proj = config.proj_sheets#"epsg:4267"
@@ -48,7 +48,7 @@ if __name__ == "__main__":
 
     # iterate over maps
     valid_ext = [".tif"]
-    for file in ["PA_Bradford_170431_1980_100000_geo.tif"]:#os.listdir(maps_dir):
+    for file in os.listdir(maps_dir): # ["PA_Bradford_170431_1980_100000_geo.tif"]:#
         if not os.path.splitext(file)[-1] in valid_ext:
             continue
         map_name = file.split("_")[1]
@@ -121,6 +121,6 @@ if __name__ == "__main__":
         # os.makedirs(masks_dir, exist_ok=True)
         os.makedirs(imgs_dir, exist_ok=True)
         full_img.save(imgs_dir + "/" + os.path.splitext(file)[0]+"_mask.tif")
-        shutil.copy(maps_dir + "/" + file, imgs_dir + "/" + file)
+        # shutil.copy(maps_dir + "/" + file, imgs_dir + "/" + file)
         
         # tile images after

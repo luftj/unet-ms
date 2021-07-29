@@ -6,7 +6,8 @@ proj_osm = "EPSG:4326"#(WGS84)
 #"EPSG:4269"#(NAD83) 
 #"EPSG:4267"#(NAD27)
 
-osm_url = "https://nc.hcu-hamburg.de/overpass_us/api/interpreter"#"http://overpass-api.de/api/interpreter/"
+# osm_url = "https://nc.hcu-hamburg.de/overpass_us/api/interpreter"
+osm_url = "http://overpass-api.de/api/interpreter/"
 osm_query = """[out:json];
                 (
                 nwr ({{bbox}}) [water=lake]; 
