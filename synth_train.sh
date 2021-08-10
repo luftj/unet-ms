@@ -58,6 +58,8 @@ for param in "${param_list[@]}" ; do
         echo bash segment_image.sh $test_data/"${file/.tif/_rescaled.tif}" $model_path "$out_path" > log_test_$exp_no_$param.txt
     done <<< "$lines"
     
-    # todo: calculate error scores of test map predictions and the corresponding masks
+    # calculate error scores of test map predictions and the corresponding masks
+    # touch scores_$exp_no_$param.txt
+    python score_predictions.py "$out_path" "$test_data" > scores_$exp_no_$param.txt
 
 done # iterating over params

@@ -19,7 +19,7 @@ infile="$1"
 #exp_no="23"
 exp_no=$(ls -d -1 E:/experiments/deepseg_models/checkpoints* | sed -e "s/[^0-9]*//" | sort -nr | head -n 1)
 echo "Experiment no.:" $exp_no
-#epoch="44"
+#epoch="200"
 epoch=$(ls -d -1 E:/experiments/deepseg_models/checkpoints$exp_no/*.pth | sed -e "s/.*\///" | sed -e "s/[^0-9]*//g" | sort -nr | head -n 1)
 echo "Epoch:" $epoch
 #outdir="/e/experiments/deepseg_models/checkpoints$exp_no/test/prediction_e""$epoch"_$(basename "$infile")
@@ -53,6 +53,7 @@ python merge_tiles.py "$outdir/pred_tiles" "$outdir"
 
 # todo: calculate error score, when ground truth is available
 # error score pixel-wise
+# problem: gt not really comparable, because lines on training with downscaling are thicker -> dilate gt or train on scale=1
 # error-score feature-based (compare to indexing)
 
 echo "done!"
