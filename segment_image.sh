@@ -17,7 +17,7 @@ fi
 
 infile="$1"
 #exp_no="23"
-exp_no=$(ls -d -1 $2/checkpoints* | sed -e "s/[^0-9]*//" | sort -nr | head -n 1)
+exp_no=$(ls -d -1 $2/checkpoints* | grep -Eo "[0-9]*$" | sort -nr | head -n 1)
 echo "Experiment no.:" $exp_no
 #epoch="200"
 epoch=$(ls -d -1 $2/checkpoints$exp_no/*.pth | sed -e "s/.*\///" | sed -e "s/[^0-9]*//g" | sort -nr | head -n 1)
@@ -34,10 +34,18 @@ model_path="$2/checkpoints$exp_no/CP_epoch$epoch.pth"
 echo "using model at" $model_path
 
 echo "starting prediction..."
-for file in "$outdir"/tiles/imgs/*.tif ; do # todo: trouble with spaces in file names?
-    python predict.py -m "$model_path" -i "$file" #-s 1
+for tile in "$outdir"/tiles/imgs/*.tif; do
+        tiles+=("${tile}")
 done
-# python predict.py -m $model_path -i $(ls $outdir/tiles/imgs/*.tif) #-s 1
+
+echo ${#tiles[@]} tiles found
+
+batchsize=20
+for ((f=0; f<"${#tiles[@]}"; f+=$batchsize)); do
+        let g=f+$batchsize
+        echo predicting tiles $f to $g...
+        python predict.py -m "$model_path" -i "${tiles[@]:$f:$g}" #-s 1 # allows spaces in filenames
+done
 cd ..
 
 echo "moving tiles..."
@@ -51,9 +59,16 @@ done
 echo "merging tiles..."
 python merge_tiles.py "$outdir/pred_tiles" "$outdir"
 
+echo "cleaning up..."
+if compgen -G "$outdir/*.png" >/dev/null; then
+    rm -r "$outdir/tiles"
+    rm -r "$outdir/pred_tiles"
+fi
+
 # todo: calculate error score, when ground truth is available
-# error score pixel-wise
 # problem: gt not really comparable, because lines on training with downscaling are thicker -> dilate gt or train on scale=1
-# error-score feature-based (compare to indexing)
+# calculate error scores of test map predictions and the corresponding masks
+# touch scores_$exp_no_$param.txt
+# python score_predictions.py "$out_path" "$test_data" > scores_$exp_no_$param.txt
 
 echo "done!"
