@@ -1,3 +1,6 @@
 [submodule "Pytorch-UNet"]
 	path = Pytorch-UNet
 	url = git@github.com:luftj/Pytorch-UNet.git
+[submodule "pytorch-unet-1"]
+	path = pytorch-unet-1
+	url = git@github.com:luftj/pytorch-unet-1.git
