@@ -59,7 +59,7 @@ if __name__ == "__main__":
         result = subprocess.check_output("gdalinfo \""+ maps_dir+"/"+file+"\"", shell=True)
         # print(result.decode("ascii"))
         # print()
-        crs = re.findall(r"(?<=Coordinate System is:).*(?=Data axis)",result.decode("ascii"), flags=re.MULTILINE+re.DOTALL)
+        crs = re.findall(r"(?<=Coordinate System is:).*(?=Data axis|Origin)",result.decode("ascii"), flags=re.MULTILINE+re.DOTALL)
         # print(crs[0].replace("\r","").replace("\n",""))
         osm.proj_map = crs[0].replace("\r","").replace("\n","")
         osm.transform_osm_to_map = Transformer.from_proj(osm.proj_osm, osm.proj_map, skip_equivalent=True, always_xy=True)

@@ -31,8 +31,8 @@ done
 python synthesise_data.py $train_data $train_data $quads
 python synthesise_data.py $test_data $test_data $quads
 
-tile images and masks
-python tile_images.py $data_path $data_path/tiles/ -s 1024
+#tile images and masks
+#python tile_images.py $data_path $data_path/tiles/ -s 1024
 tiled_train=$train_data/tiles/
 python tile_images.py $train_data/ $tiled_train -s 512
 python tile_images.py $train_data $tiled_train -s 512 -x 256 -y 256
@@ -46,8 +46,7 @@ exp_no=26
 param_list=("1e-6" "1e-5")
 for param in "${param_list[@]}" ; do
     echo "Exp# $exp_no: Training with param $param"
-    echo python Pytorch-UNet/train.py $tiled_train "$model_path/checkpoints$exp_no" -l $param -e 100 -w 60 > log_train_$exp_no_$param.txt
-    exp_no=$((exp_no + 1))
+    python Pytorch-UNet/train.py $tiled_train "$model_path/checkpoints$exp_no/" -l $param -e 100 -w 60 > log_train_$exp_no_$param.txt
     
     # run som test maps
     tail -n +2 $sampled_data/testlist.txt > $sampled_data/testlist2.txt
@@ -55,11 +54,12 @@ for param in "${param_list[@]}" ; do
     while read -r file; do
         file=$(echo $file | tr -d '\r')
         echo "Testing with" $file
-        echo bash segment_image.sh $test_data/"${file/.tif/_rescaled.tif}" $model_path "$out_path" > log_test_$exp_no_$param.txt
+        bash segment_image.sh $test_data/"${file/.tif/_rescaled.tif}" $model_path "$out_path" > log_test_$exp_no_$param.txt
     done <<< "$lines"
     
     # calculate error scores of test map predictions and the corresponding masks
     # touch scores_$exp_no_$param.txt
-    python score_predictions.py "$out_path" "$test_data" > scores_$exp_no_$param.txt
+    python score_predictions.py "$out_path/$exp_no" "$test_data" > scores_"$exp_no"_$param.txt
+    exp_no=$((exp_no + 1))
 
 done # iterating over params

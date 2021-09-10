@@ -42,7 +42,7 @@ def get_from_osm(bbox=[16.3,54.25,16.834,54.5], url = osm_url):
 
     while True:
         try:
-            result = requests.get(url, params={'data': query}, timeout=download_timeout)
+            result = requests.get(url, params={'data': query}, timeout=download_timeout, veri)
             result = result.json()
             break
         except Exception as e:

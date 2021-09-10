@@ -65,7 +65,7 @@ def plot_template_matches(keypoints_q, keypoints_r, inliers,query_image, referen
 def estimate_transform(keypoints_q, keypoints_r, query_image, reference_image, plot=False):
     from skimage.measure import ransac
     from skimage.transform import AffineTransform, SimilarityTransform
-    print("number of used keypoints: %d", len(keypoints_q))
+    #print("number of used keypoints: %d", len(keypoints_q))
     #logging.info("number of matched templates: %d", len(keypoints_r)) # all get matched
 
     warp_mode_retrieval = "similarity"
@@ -153,8 +153,8 @@ if __name__ == "__main__":
     # python score_predictions.py "/e/experiments/deepseg_exp/26/" "/e/data/usgs/100k/selected/test/"
 
     for dir in os.listdir(args.prediction):
-        if not os.path.isdir(args.prediction + dir):
-            continue
+        # if not os.path.isdir(args.prediction + dir):
+        #     continue
         dir = args.prediction + dir
         try:
             pred_file_name = next(filter(lambda x: os.path.splitext(x)[-1] == ".png"  , os.listdir(dir)))
@@ -197,4 +197,4 @@ if __name__ == "__main__":
         # todo: can we get an index score as well? train index on all quads?
         num_matches, ransac_score_result = ransac_score( np.array(pred_img)[:,:,0], np.array(truth_img), plot=args.plot)
 
-        print("%s,%0.3f,%0.3f,%dnum_matches" % (pred_file_name, iou, dice, num_matches, ransac_score_result))
+        print("%s,%0.3f,%0.3f,%d,%d" % (pred_file_name, iou, dice, num_matches, ransac_score_result))

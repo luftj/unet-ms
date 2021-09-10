@@ -11,6 +11,7 @@ def tile_and_save(image_file_path, out_dir, tile_size=512, x_offset=0, y_offset=
         tile_and_save_img(img, out_dir=out_dir, out_name=out_name, is_mask=("mask" in out_name), tile_size=tile_size, x_offset=x_offset, y_offset=y_offset)
 
 def tile_and_save_img(img, out_dir, out_name, is_mask, tile_size=512, x_offset=0, y_offset=0):
+    img = img.convert("RGB")
     width, height = img.size
     
     tile_idx = 0

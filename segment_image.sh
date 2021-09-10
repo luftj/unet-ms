@@ -15,10 +15,16 @@ if [ $# -lt 3 ]; then
     exit 1
 fi
 
+if [ $# -eq 4 ]; then
+    exp_no=$4
+    "experiment number set manually"
+else
+    #exp_no="23"
+    exp_no=$(ls -d -1 "$2"/checkpoints* |  grep -Eo "[0-9]*$" | sort -nr | head -n 1)
+    echo "Experiment no.:" $exp_no
+fi
+
 infile="$1"
-#exp_no="23"
-exp_no=$(ls -d -1 "$2"/checkpoints* |  grep -Eo "[0-9]*$" | sort -nr | head -n 1)
-echo "Experiment no.:" $exp_no
 #epoch="200"
 epoch=$(ls -d -1 $2/checkpoints$exp_no/*.pth | sed -e "s/.*\///" | sed -e "s/[^0-9]*//g" | sort -nr | head -n 1)
 echo "Epoch:" $epoch
