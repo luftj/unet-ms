@@ -5,8 +5,8 @@ from albumentations.pytorch import ToTensorV2
 from tqdm import tqdm
 import torch.nn as nn
 import torch.optim as optim
-from model import UNET
-from utils import (
+from model_eth import UNET
+from utils_eth import (
     load_checkpoint,
     save_checkpoint,
     get_loaders,
@@ -18,11 +18,11 @@ from utils import (
 LEARNING_RATE = 1e-5
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 BATCH_SIZE = 1
-NUM_EPOCHS = 100
+NUM_EPOCHS = 3
 NUM_WORKERS = 2
 pos_weight = 60
-IMAGE_HEIGHT = 512  # 1280 originally
-IMAGE_WIDTH = 512  # 1918 originally
+IMAGE_HEIGHT = 320  # 1280 originally
+IMAGE_WIDTH = 320  # 1918 originally
 PIN_MEMORY = True
 LOAD_MODEL = False
 TRAIN_IMG_DIR = "data/train_images/"
@@ -72,6 +72,7 @@ def main():
     val_transforms = A.Compose(
         [
             A.Resize(height=IMAGE_HEIGHT, width=IMAGE_WIDTH),
+            A.Crop(x_min=60,x_max=260,y_min=60,y_max=260,p=1),
             A.Normalize(
                 mean=[0.0, 0.0, 0.0],
                 std=[1.0, 1.0, 1.0],
