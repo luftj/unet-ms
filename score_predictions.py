@@ -155,7 +155,8 @@ if __name__ == "__main__":
     for dir in os.listdir(args.prediction):
         # if not os.path.isdir(args.prediction + dir):
         #     continue
-        dir = args.prediction + dir
+        dir = args.prediction + "/" + dir
+        print("scoring %s" % dir)
         try:
             pred_file_name = next(filter(lambda x: os.path.splitext(x)[-1] == ".png"  , os.listdir(dir)))
         except StopIteration:
@@ -171,8 +172,8 @@ if __name__ == "__main__":
         pred_img = Image.open(pred_file)
         truth_img = Image.open(truth_file).crop((0,0,*pred_img.size))
         # hack: alleviate rescaling effects
-        pred_img = pred_img.filter(ImageFilter.MinFilter(7))
-        truth_img = truth_img.filter(ImageFilter.MaxFilter(7))
+        # pred_img = pred_img.filter(ImageFilter.MinFilter(7))
+        # truth_img = truth_img.filter(ImageFilter.MaxFilter(7))
         pred_array = np.array(pred_img, dtype=np.int32)[:,:,0] # prediction has 3 channels, but they are all the same
         truth_array = np.array(truth_img, dtype=np.int32)
         intersection = np.sum(pred_array & truth_array)

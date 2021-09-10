@@ -17,7 +17,7 @@ fi
 
 if [ $# -eq 4 ]; then
     exp_no=$4
-    "experiment number set manually"
+    echo "experiment number set manually"
 else
     #exp_no="23"
     exp_no=$(ls -d -1 "$2"/checkpoints* |  grep -Eo "[0-9]*$" | sort -nr | head -n 1)
@@ -30,7 +30,7 @@ epoch=$(ls -d -1 $2/checkpoints$exp_no/*.pth | sed -e "s/.*\///" | sed -e "s/[^0
 echo "Epoch:" $epoch
 #outdir="/e/experiments/deepseg_models/checkpoints$exp_no/test/prediction_e""$epoch"_$(basename "$infile")
 outdir="$3/$exp_no/prediction_e""$epoch"_$(basename "$infile")
-echo $outdir
+echo "outdir: $outdir"
 
 mkdir -p "$outdir"/tiles
 python tile_images.py "$infile" "$outdir/tiles/"
@@ -50,7 +50,7 @@ batchsize=20
 for ((f=0; f<"${#tiles[@]}"; f+=$batchsize)); do
         let g=f+$batchsize
         echo predicting tiles $f to $g...
-        python predict.py -m "$model_path" -i "${tiles[@]:$f:$g}" #-s 1 # allows spaces in filenames
+        python predict.py -m "$model_path" -i "${tiles[@]:$f:$g}" -s 1 # allows spaces in filenames
 done
 cd ..
 

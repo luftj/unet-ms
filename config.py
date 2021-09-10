@@ -1,4 +1,5 @@
 path_osm = "E:/data/train/synthdata/usgs100/"
+# path_osm = "/media/ecl2/DATA/jonas/usgs100/osm/"
 
 proj_map = "EPSG:4267"#(NAD27)
 proj_sheets = "EPSG:4267"#(NAD27) #proj_map
