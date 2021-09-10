@@ -1,3 +1,4 @@
+from albumentations.augmentations.geometric.rotate import RandomRotate90
 import torch
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
@@ -17,7 +18,7 @@ from utils import (
 LEARNING_RATE = 1e-5
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 BATCH_SIZE = 1
-NUM_EPOCHS = 3
+NUM_EPOCHS = 100
 NUM_WORKERS = 2
 pos_weight = 60
 IMAGE_HEIGHT = 512  # 1280 originally
@@ -56,8 +57,9 @@ def main():
         [
             A.Resize(height=IMAGE_HEIGHT, width=IMAGE_WIDTH),
             # A.Rotate(limit=35, p=1.0),
-            A.HorizontalFlip(p=0.5),
-            A.VerticalFlip(p=0.1),
+            A.RandomRotate90(p=0.1),
+            A.HorizontalFlip(p=0.2),
+            A.VerticalFlip(p=0.2),
             A.Normalize(
                 mean=[0.0, 0.0, 0.0],
                 std=[1.0, 1.0, 1.0],
