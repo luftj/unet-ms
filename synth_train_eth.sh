@@ -42,11 +42,10 @@ python tile_images.py $train_data/ $tiled_train -s 320 -x 200 -y 200
 # remove empty masks + corresponding imgs
 python filter_tiles.py $tiled_train -t 0.01 --plot
 
-# todo: handle train param keys
-model_path="/e/experiments/deepseg_models/"
-# model_path="/media/ecl2/DATA/jonas/deepseg_models/"
+
 exp_no=37
 
+# move data
 mv persson_unet/data/ persson_unet/data_bak/
 mkdir persson_unet/data/
 mv $tiled_train persson_unet/data/
@@ -63,9 +62,9 @@ for f in persson_unet/data/val_images/*; do
     mv persson_unet/data/train_masks/$f persson_unet/data/val_masks/
 done
 
+# run training
 echo "Exp# $exp_no"
 python persson_unet/train_eth.py
-
 
 mv persson_unet/data/ persson_unet/data_"$exp_no"_train/
 # run som test maps
@@ -85,6 +84,7 @@ while read -r file; do
     mv persson_unet/predictions/pred_* persson_unet/predictions/pred_tiles/
     
     python merge_tiles.py persson_unet/predictions/pred_tiles/ "$out_path/$exp_no"
+    rm -r persson_unet/predictions/
 done <<< "$lines"
 
 # calculate error scores of test map predictions and the corresponding masks
