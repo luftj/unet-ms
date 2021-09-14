@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# ulimit -n 3200 # avoid OSError: too many open files
-# ulimit -n
-
 data_path="E:/data/usgs/100k/"
 out_path="E:/experiments/deepseg_models/"
 quads="E:/data/usgs/indices/CellGrid_30X60Minute.json"
@@ -45,20 +42,20 @@ tiled_train=$train_data/tiles/
 # move data
 mv persson_unet/data/ persson_unet/data_bak/
 mkdir persson_unet/data/
-mv $tiled_train persson_unet/data/
+cp -r $tiled_train/* persson_unet/data/
 mv persson_unet/data/imgs persson_unet/data/train_images
 mv persson_unet/data/masks persson_unet/data/train_masks
 mkdir persson_unet/data/val_images
 mkdir persson_unet/data/val_masks
 shopt -s globstar
-files=(/persson_unet/data/train_images/*)
+files=(persson_unet/data/train_images/*)
 for i in {1..50}; do
     mv "${files[RANDOM % ${#files[@]}]}" persson_unet/data/val_images
 done
-for f in persson_unet/data/val_images/*; do
-    mv persson_unet/data/train_masks/$f persson_unet/data/val_masks/
+for f in persson_unet/data/val_images/* ; do
+        mv persson_unet/data/train_masks/"$(basename "$f")" persson_unet/data/val_masks/
 done
-exit
+
 # run training
 exp_no=37
 echo "Exp# $exp_no"
@@ -77,12 +74,29 @@ while read -r file; do
     python tile_images.py $test_data/ $tiled_test -s 320
     python tile_images.py $test_data/ $tiled_test -s 320 -x 200 -y 200
 
+    # move test data
+    mkdir persson_unet/data/
+    cp -r $tiled_test/* persson_unet/data/
+    mv persson_unet/data/imgs persson_unet/data/train_images
+    mv persson_unet/data/masks persson_unet/data/train_masks
+    mkdir persson_unet/data/val_images
+    mkdir persson_unet/data/val_masks
+    shopt -s globstar
+    files=(persson_unet/data/train_images/*)
+    for i in {1..50}; do
+        mv "${files[RANDOM % ${#files[@]}]}" persson_unet/data/val_images
+    done
+    for f in persson_unet/data/val_images/* ; do
+            mv persson_unet/data/train_masks/"$(basename "$f")" persson_unet/data/val_masks/
+    done
+
     python persson_unet/predict_eth.py
 
     mv persson_unet/predictions/pred_* persson_unet/predictions/pred_tiles/
     
     python merge_tiles.py persson_unet/predictions/pred_tiles/ "$out_path/$exp_no"
     rm -r persson_unet/predictions/
+    rm -r persson_unet/data/
 done <<< "$lines"
 
 # calculate error scores of test map predictions and the corresponding masks
