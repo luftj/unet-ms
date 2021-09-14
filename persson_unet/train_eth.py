@@ -72,7 +72,6 @@ def main():
     val_transforms = A.Compose(
         [
             A.Resize(height=IMAGE_HEIGHT, width=IMAGE_WIDTH),
-            A.Crop(x_min=60,x_max=260,y_min=60,y_max=260,p=1),
             A.Normalize(
                 mean=[0.0, 0.0, 0.0],
                 std=[1.0, 1.0, 1.0],
