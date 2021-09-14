@@ -27,5 +27,5 @@ class CarvanaDataset(Dataset):
 
         mask = mask[60:-60,60:-60]
 
-        return image, mask
+        return image, mask, os.path.splitext(self.images[index])[0]
 
