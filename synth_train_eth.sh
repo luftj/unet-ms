@@ -59,9 +59,12 @@ for f in persson_unet/data/val_images/* ; do
 done
 
 # run training
-exp_no=37
+exp_no=38
 echo "Exp# $exp_no"
-python persson_unet/train_eth.py
+cd persson_unet
+mkdir -p predictions/pred_tiles/
+python train_eth.py
+cd ..
 
 mv persson_unet/data/ persson_unet/data_"$exp_no"_train/
 # run som test maps
@@ -95,6 +98,7 @@ while read -r file; do
     done
 
     cd persson_unet
+    mkdir -p predictions/pred_tiles/
     python predict_eth.py
     cd ..
 
@@ -111,5 +115,4 @@ echo "scoring $exp_no..."
 python score_predictions.py "$out_path/$exp_no" "$test_data" > scores_"$exp_no"_$param.txt
 exp_no=$((exp_no + 1))
 
-done # iterating over params
 echo "done with all"
