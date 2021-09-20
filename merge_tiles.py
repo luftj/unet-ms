@@ -30,7 +30,7 @@ def merge_image_xy(name, positions, output_dir):
     for position in positions:
         x,y = position
         print("merging %d,%d" % (x,y))
-        path ="%s/%s_tile%d-%d.tif" % (in_dir, name, x, y)
+        path ="%s/%s_tile%d-%d.png" % (in_dir, name, x, y)
         print(path)
         cur_img = Image.open(path)
         if not full_img:

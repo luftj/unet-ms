@@ -3,9 +3,9 @@
 data_path="E:/data/usgs/100k/"
 out_path="E:/experiments/deepseg_models/"
 quads="E:/data/usgs/indices/CellGrid_30X60Minute.json"
-# data_path="/media/ecl2/DATA/jonas/usgs/100k_raw/"
-# out_path="/media/ecl2/DATA/jonas/deepseg_models/"
-# quads="/media/ecl2/DATA/jonas/usgs/CellGrid_30X60Minute.json"
+# data_path="/media/ecl2/DATA1/jonas/usgs/100k_raw/"
+# out_path="/media/ecl2/DATA1/jonas/deepseg_models/"
+# quads="/media/ecl2/DATA1/jonas/usgs/CellGrid_30X60Minute.json"
 
 sampled_data=$data_path/selected/
 mkdir $sampled_data
@@ -68,35 +68,26 @@ cd ..
 
 mv persson_unet/data/ persson_unet/data_"$exp_no"_train/
 # run som test maps
+
+#tile images and masks
+tiled_test=$test_data/tiles/
+python tile_images.py $test_data/ $tiled_test -s 320
+python tile_images.py $test_data/ $tiled_test -s 320 -x 200 -y 200
+python tile_images.py $test_data/ $tiled_test -s 320 -x 200
+python tile_images.py $test_data/ $tiled_test -s 320 -y 200
+
+# move test data
+mkdir persson_unet/data/
+cp -r $tiled_test/* persson_unet/data/
+mv persson_unet/data/imgs persson_unet/data/val_images
+mv persson_unet/data/masks persson_unet/data/val_masks
+
 tail -n +2 $sampled_data/testlist.txt > $sampled_data/testlist2.txt
 lines=$(cat $sampled_data/testlist2.txt)
 while read -r file; do
     file=$(echo $file | tr -d '\r')
     echo "Testing with" $file
     
-    #tile images and masks
-    tiled_test=$test_data/tiles/
-    python tile_images.py $test_data/ $tiled_test -s 320
-    python tile_images.py $test_data/ $tiled_test -s 320 -x 200 -y 200
-    python tile_images.py $test_data/ $tiled_test -s 320 -x 200
-    python tile_images.py $test_data/ $tiled_test -s 320 -y 200
-
-    # move test data
-    mkdir persson_unet/data/
-    cp -r $tiled_test/* persson_unet/data/
-    mv persson_unet/data/imgs persson_unet/data/train_images
-    mv persson_unet/data/masks persson_unet/data/train_masks
-    mkdir persson_unet/data/val_images
-    mkdir persson_unet/data/val_masks
-    shopt -s globstar
-    files=(persson_unet/data/train_images/*)
-    for i in {1..50}; do
-        mv "${files[RANDOM % ${#files[@]}]}" persson_unet/data/val_images
-    done
-    for f in persson_unet/data/val_images/* ; do
-            mv persson_unet/data/train_masks/"$(basename "$f")" persson_unet/data/val_masks/
-    done
-
     cd persson_unet
     mkdir -p predictions/pred_tiles/
     python predict_eth.py
@@ -104,6 +95,7 @@ while read -r file; do
 
     mv persson_unet/predictions/pred_* persson_unet/predictions/pred_tiles/
     
+    mkdir -p "$out_path/$exp_no/$(basename $file)"
     python merge_tiles.py persson_unet/predictions/pred_tiles/ "$out_path/$exp_no"
     rm -r persson_unet/predictions/
     rm -r persson_unet/data/
