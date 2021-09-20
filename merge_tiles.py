@@ -9,7 +9,7 @@ def merge_image(name, dims, output_dir):
     for x in range(dims[0]+1):
         for y in range(dims[1]+1):
             print("merging %d,%d" % (x,y))
-            path ="%s/%s_tile%03d.tif" % (in_dir, name, tile_idx)
+            path ="%s/%s_tile%03d.png" % (in_dir, name, tile_idx)
             print(path)
             cur_img = Image.open(path)
             if not full_img:

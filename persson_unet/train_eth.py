@@ -18,7 +18,7 @@ from utils_eth import (
 LEARNING_RATE = 1e-5
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 BATCH_SIZE = 1
-NUM_EPOCHS = 5
+NUM_EPOCHS = 100
 NUM_WORKERS = 2
 pos_weight = 60
 IMAGE_HEIGHT = 320  # 1280 originally
@@ -33,7 +33,7 @@ VAL_MASK_DIR = "data/val_masks/"
 def train_fn(loader, model, optimizer, loss_fn, scaler):
     loop = tqdm(loader)
 
-    for batch_idx, (data, targets) in enumerate(loop):
+    for batch_idx, (data, targets, names) in enumerate(loop):
         data = data.to(device=DEVICE)
         targets = targets.float().unsqueeze(1).to(device=DEVICE)
 

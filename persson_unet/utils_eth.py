@@ -2,6 +2,7 @@ import torch
 import torchvision
 from dataset_eth import CarvanaDataset
 from torch.utils.data import DataLoader
+import re
 
 def save_checkpoint(state, filename="my_checkpoint.pth.tar"):
     print("=> Saving checkpoint")
@@ -109,9 +110,12 @@ def save_predictions_as_imgs(
         with torch.no_grad():
             preds = torch.sigmoid(model(x))
             preds = (preds > 0.5).float()
+        coords = re.findall(r"[0-9]+-[0-9]+",n[0])[0].split("-")
+        new_coords = "%d-%d"%(int(coords[0])+60,int(coords[1])+60)
+        offset_name = n[0].replace("%s-%s"%(coords[0],coords[1]),new_coords)
         torchvision.utils.save_image(
-            preds, f"{folder}/pred_tiles/{n}.png"
+            preds, f"{folder}/pred_tiles/{offset_name}.png"
         )
-        torchvision.utils.save_image(y.unsqueeze(1), f"{folder}{idx}.png")
+        # torchvision.utils.save_image(y.unsqueeze(1), f"{folder}/pred_tiles/{n[0]}.png")
 
     model.train()

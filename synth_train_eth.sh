@@ -35,6 +35,8 @@ test_data=$sampled_data/test/
 tiled_train=$train_data/tiles/
 # python tile_images.py $train_data/ $tiled_train -s 320
 # python tile_images.py $train_data/ $tiled_train -s 320 -x 200 -y 200
+# python tile_images.py $train_data/ $tiled_train -s 320 -x 200
+# python tile_images.py $train_data/ $tiled_train -s 320 -y 200
 
 # # remove empty masks + corresponding imgs
 # python filter_tiles.py $tiled_train -t 0.01 --plot
@@ -73,6 +75,8 @@ while read -r file; do
     tiled_test=$test_data/tiles/
     python tile_images.py $test_data/ $tiled_test -s 320
     python tile_images.py $test_data/ $tiled_test -s 320 -x 200 -y 200
+    python tile_images.py $test_data/ $tiled_test -s 320 -x 200
+    python tile_images.py $test_data/ $tiled_test -s 320 -y 200
 
     # move test data
     mkdir persson_unet/data/
@@ -90,7 +94,9 @@ while read -r file; do
             mv persson_unet/data/train_masks/"$(basename "$f")" persson_unet/data/val_masks/
     done
 
-    python persson_unet/predict_eth.py
+    cd persson_unet
+    python predict_eth.py
+    cd ..
 
     mv persson_unet/predictions/pred_* persson_unet/predictions/pred_tiles/
     
