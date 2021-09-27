@@ -27,23 +27,9 @@ def get_pixel_from_raster(georef_image_path, lonlat):
 
     return xy
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='',
-                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('input', help='input directory')
-    parser.add_argument('outdir', help='output directory')
-    parser.add_argument('quads', help='quadrangles geojson file')
-    args = parser.parse_args()
-
-    maps_dir = args.input#"E:/data/usgs/100k"
-    imgs_dir = args.outdir#+"/imgs/"#"E:/data/usgs/100k/imgs"
-    # masks_dir = args.outdir+"/masks/"#"E:/data/usgs/100k/masks"
-    # quadrangles_file = "E:/data/usgs/indices/CellGrid_30X60Minute.json"
-    # quadrangles_key = "CELL_NAME"
-    # quad_proj = config.proj_sheets#"epsg:4267"
-
+def synthesise_all(maps_dir, imgs_dir, quads_path):
     # load quadrangles data
-    with open(args.quads, encoding="utf8") as fr:
+    with open(quads_path, encoding="utf8") as fr:
         quadrangles = { f["properties"][config.quadrangles_key] : f["geometry"]["coordinates"][0] for f in json.load(fr)["features"]}
 
     # iterate over maps
@@ -121,6 +107,24 @@ if __name__ == "__main__":
         # os.makedirs(masks_dir, exist_ok=True)
         os.makedirs(imgs_dir, exist_ok=True)
         full_img.save(imgs_dir + "/" + os.path.splitext(file)[0]+"_mask.tif")
-        # shutil.copy(maps_dir + "/" + file, imgs_dir + "/" + file)
+        if maps_dir != imgs_dir:
+            shutil.copy(maps_dir + "/" + file, imgs_dir + "/" + file)
         
         # tile images after
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='',
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('input', help='input directory')
+    parser.add_argument('outdir', help='output directory')
+    parser.add_argument('quads', help='quadrangles geojson file')
+    args = parser.parse_args()
+
+    maps_dir = args.input#"E:/data/usgs/100k"
+    imgs_dir = args.outdir#+"/imgs/"#"E:/data/usgs/100k/imgs"
+    quads_path = args.quads
+    # masks_dir = args.outdir+"/masks/"#"E:/data/usgs/100k/masks"
+    # quadrangles_file = "E:/data/usgs/indices/CellGrid_30X60Minute.json"
+    # quadrangles_key = "CELL_NAME"
+    # quad_proj = config.proj_sheets#"epsg:4267"
+    synthesise_all(maps_dir, imgs_dir, quads_path)

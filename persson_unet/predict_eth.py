@@ -4,8 +4,8 @@ import albumentations as A
 from albumentations.pytorch import ToTensorV2
 import torch.nn as nn
 import torch.optim as optim
-from model_eth import UNET
-from utils_eth import (
+from persson_unet.model_eth import UNET
+from persson_unet.utils_eth import (
     load_checkpoint,
     get_val_loader,
     check_accuracy,
@@ -17,17 +17,15 @@ import os
 LEARNING_RATE = 1e-5
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 BATCH_SIZE = 1
-NUM_EPOCHS = 3
 NUM_WORKERS = 2
 pos_weight = 60
 IMAGE_HEIGHT = 320
 IMAGE_WIDTH = 320
 PIN_MEMORY = True
 LOAD_MODEL = False
-TRAIN_IMG_DIR = "data/train_images/"
-TRAIN_MASK_DIR = "data/train_masks/"
 VAL_IMG_DIR = "data/val_images/"
 VAL_MASK_DIR = "data/val_masks/"
+model_path = "my_checkpoint.pth.tar"
 
 def main():
     val_transforms = A.Compose(
@@ -56,13 +54,13 @@ def main():
         PIN_MEMORY,
     )
 
-    load_checkpoint(torch.load("my_checkpoint.pth.tar"), model)
+    load_checkpoint(torch.load(model_path), model)
 
     # check accuracy
     check_accuracy(val_loader, model, device=DEVICE)
 
     # print predictions to a folder
-    os.makedirs("predictions/", exist_ok=True)
+    os.makedirs("predictions/pred_tiles/", exist_ok=True)
     save_predictions_as_imgs(
         val_loader, model, folder="predictions/", device=DEVICE
     )

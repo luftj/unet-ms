@@ -3,7 +3,7 @@ import os
 import argparse
 from PIL import Image
 
-def merge_image(name, dims, output_dir):
+def merge_image(name, dims, in_dir, output_dir):
     tile_idx = 0
     full_img=None
     for x in range(dims[0]+1):
@@ -24,7 +24,7 @@ def merge_image(name, dims, output_dir):
     full_img = full_img.crop([0,0,tile_size[0]*x+last_size[0],tile_size[1]*y+last_size[1]])
     full_img.save(output_dir+"/"+name+".png", "PNG")
     
-def merge_image_xy(name, positions, output_dir):
+def merge_image_xy(name, positions, in_dir, output_dir):
     tile_idx = 0
     full_img=None
     for position in positions:
@@ -44,15 +44,7 @@ def merge_image_xy(name, positions, output_dir):
     full_img = full_img.crop([*first_offset, *full_img.size])
     full_img.save(output_dir+"/"+name+".png", "PNG")
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='',
-                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('input', help='input directory')
-    parser.add_argument('outdir', help='output directory')
-    args = parser.parse_args()
-    # e.g. python merge_tiles.py E:/data/deutsches_reich/train/tiles3/masks ./prediction
-    in_dir = args.input#"E:/data/deutsches_reich/train/tiles3/masks"
-
+def merge_dir(in_dir, out_dir):
     images_dict  = {}
 
     for file in os.listdir(in_dir):
@@ -68,6 +60,17 @@ if __name__ == "__main__":
         if "-" in tiles[0]:
             positions = [tuple(map(int,x.split("-"))) for x in tiles]
             print(positions)
-            merge_image_xy(name, positions, output_dir=args.outdir)
+            merge_image_xy(name, positions, in_dir, output_dir=out_dir)
         else:
-            merge_image(name, dims=(13,11), output_dir=args.outdir)
+            merge_image(name, dims=(13,11), output_dir=out_dir)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='',
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('input', help='input directory')
+    parser.add_argument('outdir', help='output directory')
+    args = parser.parse_args()
+    # e.g. python merge_tiles.py E:/data/deutsches_reich/train/tiles3/masks ./prediction
+    # in_dir = args.input#"E:/data/deutsches_reich/train/tiles3/masks"
+
+    merge_dir(args.input, args.outdir)

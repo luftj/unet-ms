@@ -84,23 +84,23 @@ mv persson_unet/data/masks persson_unet/data/val_masks
 
 tail -n +2 $sampled_data/testlist.txt > $sampled_data/testlist2.txt
 lines=$(cat $sampled_data/testlist2.txt)
-while read -r file; do
-    file=$(echo $file | tr -d '\r')
-    echo "Testing with" $file
-    
-    cd persson_unet
-    mkdir -p predictions/pred_tiles/
-    python predict_eth.py
-    cd ..
+# while read -r file; do
+file=$(echo $file | tr -d '\r')
+echo "Testing with" $file
 
-    mv persson_unet/predictions/pred_* persson_unet/predictions/pred_tiles/
-    
-    mkdir -p "$out_path/$exp_no/$(basename $file)"
-    python merge_tiles.py persson_unet/predictions/pred_tiles/ "$out_path/$exp_no"
-    rm -r persson_unet/predictions/
-    rm -r persson_unet/data/
-done <<< "$lines"
+cd persson_unet
+mkdir -p predictions/pred_tiles/
+python predict_eth.py
+cd ..
 
+mv persson_unet/predictions/pred_* persson_unet/predictions/pred_tiles/
+
+mkdir -p "$out_path/$exp_no/$(basename $file)"
+python merge_tiles.py persson_unet/predictions/pred_tiles/ "$out_path/$exp_no"
+rm -r persson_unet/predictions/
+#rm -r persson_unet/data/
+# done <<< "$lines"
+rm -r persson_unet/data/
 # calculate error scores of test map predictions and the corresponding masks
 # touch scores_$exp_no_$param.txt
 echo "scoring $exp_no..."

@@ -4,3 +4,7 @@ rasterio
 pyproj
 opencv-python
 osmtogeojson
+
+# for experiment scheduling:
+openpyxl
+requests

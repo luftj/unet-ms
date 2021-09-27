@@ -1,6 +1,6 @@
 import torch
 import torchvision
-from dataset_eth import CarvanaDataset
+from persson_unet.dataset_eth import CarvanaDataset
 from torch.utils.data import DataLoader
 import re
 
@@ -98,8 +98,10 @@ def check_accuracy(loader, model, device="cuda"):
     print(
         f"Got {num_correct}/{num_pixels} with acc {num_correct/num_pixels*100:.2f}"
     )
-    print(f"Dice score: {dice_score/len(loader)}")
+    score = dice_score/len(loader)
+    print(f"Dice score: {score}")
     model.train()
+    return score
 
 def save_predictions_as_imgs(
     loader, model, folder="saved_images/", device="cuda"

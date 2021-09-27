@@ -5,8 +5,8 @@ from albumentations.pytorch import ToTensorV2
 from tqdm import tqdm
 import torch.nn as nn
 import torch.optim as optim
-from model_eth import UNET
-from utils_eth import (
+from persson_unet.model_eth import UNET
+from persson_unet.utils_eth import (
     load_checkpoint,
     save_checkpoint,
     get_loaders,
@@ -29,6 +29,7 @@ TRAIN_IMG_DIR = "data/train_images/"
 TRAIN_MASK_DIR = "data/train_masks/"
 VAL_IMG_DIR = "data/val_images/"
 VAL_MASK_DIR = "data/val_masks/"
+logfile = "train_log.txt"
 
 def train_fn(loader, model, optimizer, loss_fn, scaler):
     loop = tqdm(loader)
@@ -104,24 +105,27 @@ def main():
     check_accuracy(val_loader, model, device=DEVICE)
     scaler = torch.cuda.amp.GradScaler()
 
-    for epoch in range(NUM_EPOCHS):
-        print("Epoch: %s" % epoch)
-        train_fn(train_loader, model, optimizer, loss_fn, scaler)
+    with open(logfile, "w") as log:
+        log.write("epoch,score\n")
+        for epoch in range(NUM_EPOCHS):
+            print("Epoch: %s" % epoch)
+            train_fn(train_loader, model, optimizer, loss_fn, scaler)
 
-        # save model
-        checkpoint = {
-            "state_dict": model.state_dict(),
-            "optimizer":optimizer.state_dict(),
-        }
-        save_checkpoint(checkpoint)
+            # save model
+            checkpoint = {
+                "state_dict": model.state_dict(),
+                "optimizer":optimizer.state_dict(),
+            }
+            save_checkpoint(checkpoint)
 
-        # check accuracy
-        check_accuracy(val_loader, model, device=DEVICE)
+            # check accuracy
+            score = check_accuracy(val_loader, model, device=DEVICE)
+            log.write("%d,%f\n" % (epoch, score))
 
-        # print some examples to a folder
-        save_predictions_as_imgs(
-            val_loader, model, folder="saved_images/", device=DEVICE
-        )
+            # print some examples to a folder
+            save_predictions_as_imgs(
+                val_loader, model, folder="saved_images/", device=DEVICE
+            )
 
 
 if __name__ == "__main__":
