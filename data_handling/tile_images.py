@@ -11,7 +11,7 @@ def tile_and_save(image_file_path, out_dir, tile_size=512, x_offset=0, y_offset=
     with Image.open(image_file_path) as img:
         out_name = os.path.splitext(os.path.basename(image_file_path))[0]
         print(out_name)
-        tile_and_save_img(img, out_dir=out_dir, out_name=out_name, is_mask=("mask" in out_name), tile_size=tile_size, x_offset=x_offset, y_offset=y_offset)
+        tile_and_save_img(img, out_dir=out_dir, out_name=out_name, is_mask=("mask" in out_name), tile_size=tile_size, x_offset=x_offset, y_offset=y_offset, offset_step=offset_step)
 
 def tile_and_save_img(img, out_dir, out_name, is_mask, tile_size=512, x_offset=0, y_offset=0, offset_step=None):
     img = img.convert("RGB")

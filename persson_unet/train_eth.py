@@ -19,7 +19,7 @@ LEARNING_RATE = 1e-5
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 BATCH_SIZE = 1
 NUM_EPOCHS = 100
-NUM_WORKERS = 2
+NUM_WORKERS = 2 if DEVICE=="cuda" else 0
 pos_weight = 60
 IMAGE_HEIGHT = 320  # 1280 originally
 IMAGE_WIDTH = 320  # 1918 originally
@@ -33,7 +33,7 @@ logfile = "train_log.txt"
 
 def train_fn(loader, model, optimizer, loss_fn, scaler):
     loop = tqdm(loader)
-
+    avg_loss = 0
     for batch_idx, (data, targets, names) in enumerate(loop):
         data = data.to(device=DEVICE)
         targets = targets.float().unsqueeze(1).to(device=DEVICE)
@@ -52,6 +52,10 @@ def train_fn(loader, model, optimizer, loss_fn, scaler):
         # update tqdm loop
         loop.set_postfix(loss=loss.item())
 
+        avg_loss += loss.item()
+    
+    avg_loss /= batch_idx
+    return avg_loss
 
 def main():
     train_transform = A.Compose(
@@ -106,10 +110,10 @@ def main():
     scaler = torch.cuda.amp.GradScaler()
 
     with open(logfile, "w") as log:
-        log.write("epoch,score\n")
+        log.write("epoch,score,loss\n")
         for epoch in range(NUM_EPOCHS):
             print("Epoch: %s" % epoch)
-            train_fn(train_loader, model, optimizer, loss_fn, scaler)
+            avg_loss = train_fn(train_loader, model, optimizer, loss_fn, scaler)
 
             # save model
             checkpoint = {
@@ -120,7 +124,7 @@ def main():
 
             # check accuracy
             score = check_accuracy(val_loader, model, device=DEVICE)
-            log.write("%d,%f\n" % (epoch, score))
+            log.write("%d,%f,%f\n" % (epoch, score, avg_loss))
 
             # print some examples to a folder
             save_predictions_as_imgs(

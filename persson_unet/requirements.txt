@@ -1,4 +1,4 @@
 torch
-tochvision
+torchvision
 albumentations
 tqdm

@@ -9,6 +9,8 @@ import osm
 import argparse
 import config
 
+from data_handling.utils import is_valid_map, is_valid_mask
+
 def get_coords_from_raster(georef_image_path, point):
     import rasterio # leave this in here, to avoid proj_db errors?
     dataset = rasterio.open(georef_image_path)
@@ -111,6 +113,17 @@ def synthesise_all(maps_dir, imgs_dir, quads_path):
             shutil.copy(maps_dir + "/" + file, imgs_dir + "/" + file)
         
         # tile images after
+
+def synthesise_maps_if_necessary(maps_dir, out_dir,set_name=""):
+    test_masks = list(filter(is_valid_mask, os.listdir(out_dir)))
+    test_maps = list(filter(is_valid_map, os.listdir(out_dir)))
+    test_maps_without_masks = [map_i for map_i in test_maps if not map_i.replace(".","_mask.") in test_masks]
+    if len(test_maps_without_masks) > 0: # todo: or if OSM params changed
+        # if no: synthesise data
+        print("synthesising %d missing %s masks..." % (len(test_maps_without_masks), set_name))
+        synthesise_data.synthesise_all(out_dir, out_dir, maps_dir)
+    else:
+        print("all %s masks present" % set_name)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='',

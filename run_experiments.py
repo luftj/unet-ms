@@ -4,6 +4,7 @@ import shutil
 import random
 
 from data_handling import synthesise_data
+from data_handling.utils import is_valid_map
 from data_handling import tile_images
 from data_handling import random_subfiles
 from data_handling import filter_tiles
@@ -48,26 +49,23 @@ def param_string():
 # get data paths from config file
 # todo: load from config file
 path_output = "E:/experiments/deepseg_models/" + str(current_exp["Exp #"]) + "/"
+path_output = "/media/ecl2/DATA/jonas/deepseg_models/" + str(current_exp["Exp #"]) + "/"
 # path_output = "/media/ecl2/DATA1/jonas/deepseg_models/"
 os.makedirs(path_output, exist_ok=True)
 
 maps_path = {
-    "USGS100": "E:/data/usgs/100k/imgs/",
-    # "USGS100": "/media/ecl2/DATA1/jonas/usgs/100k_raw/",
+    #"USGS100": "E:/data/usgs/100k/imgs/",
+    "USGS100": "/media/ecl2/DATA/jonas/usgs/100k_raw/",
     "KDR100": "E:/data/deutsches_reich/SLUB/cut/raw/"
 }
 quads_path = {
-    "USGS100": "E:/data/usgs/indices/CellGrid_30X60Minute.json",
-    # "USGS100": "/media/ecl2/DATA1/jonas/usgs/CellGrid_30X60Minute.json",
+    #"USGS100": "E:/data/usgs/indices/CellGrid_30X60Minute.json",
+    "USGS100": "/media/ecl2/DATA/jonas/usgs/CellGrid_30X60Minute.json",
 }
 valid_map_ext = [".tif",".png"]
 
-def is_valid_map(f):
-    return (os.path.splitext(f)[-1] in valid_map_ext) and (not ("_mask" in f))
-
-def is_valid_mask(f):
-    return (os.path.splitext(f)[-1] in valid_map_ext) and ("_mask" in f)
-
+print("%d maps found" % len(os.listdir(maps_path[map_series])))
+print("%d valid maps found" % len(list(filter(is_valid_map, os.listdir(maps_path[map_series])))))
 test_path = maps_path[map_series] + "/test/"
 
 # check if already trained
@@ -76,8 +74,8 @@ if not os.path.isfile(path_model):
     # if no: train new model with params
     print("training new model at %s..." % path_model)
     # check if train data present
-    training_maps = list(filter(is_valid_map, os.listdir(maps_path[map_series])))
-    if len(training_maps) <= 0:
+    raw_maps = list(filter(is_valid_map, os.listdir(maps_path[map_series])))
+    if len(raw_maps) <= 0:
         # if no: abort
         raise Exception("No training maps found!") #todo: maybe download automatically from somewhere?
     
@@ -85,6 +83,7 @@ if not os.path.isfile(path_model):
     if os.path.isdir(test_path) and len(list(filter(is_valid_map, os.listdir(test_path)))) == max(param_num_test_maps,len(fixed_test_maps)):
         print("test maps already selected")
     else:
+        os.remove(test_path)
         os.makedirs(test_path) # error if exists, because we might get more test maps than we want
         if param_num_test_maps <= 0:
             # copy test files
@@ -93,7 +92,7 @@ if not os.path.isfile(path_model):
                 shutil.copyfile((maps_path[map_series]+test_file).replace(".","_mask."), test_path) # mask
         else:
             # sample test maps
-            fixed_test_maps = random_subfiles.sample_random(maps_path[map_series], test_path, param_num_test_maps, exclude=fixed_train_maps)
+            fixed_test_maps = random_subfiles.sample_random(maps_path[map_series], test_path, param_num_test_maps, exclude=fixed_train_maps, nomask=True)
     
     # sample a number of training maps (!= test maps)
     train_path = maps_path[map_series] + "/train/"
@@ -108,19 +107,10 @@ if not os.path.isfile(path_model):
                 shutil.copyfile((maps_path[map_series]+train_file).replace(".","_mask."), train_path) # mask
         else:
             # sample train maps
-            random_subfiles.sample_random(maps_path[map_series], train_path, param_num_train_maps, fixed_test_maps)
+            random_subfiles.sample_random(maps_path[map_series], train_path, param_num_train_maps, fixed_test_maps, nomask=True)
 
     # check if train data has thruth masks
-    training_masks = list(filter(is_valid_mask, os.listdir(train_path)))
-    training_maps = list(filter(is_valid_map, os.listdir(train_path)))
-    training_maps_without_masks = [map_i for map_i in training_maps if not map_i.replace(".","_mask.") in training_masks]
-    if len(training_maps_without_masks) > 0: # todo: or if OSM params changed
-        # if no: synthesise data
-        print("synthesising %d missing training masks..." % (len(training_maps_without_masks)))
-        synthesise_data.synthesise_all(train_path, train_path, quads_path[map_series])
-    else:
-        print("all masks present")
-    # todo: check the same for test maps
+    synthesise_data.synthesise_maps_if_necessary(quads_path[map_series],train_path,"train")
     
     # check if data is tiled and filtered with same settings
     # print(param_tile_offsets, type(param_tile_offsets))
@@ -136,7 +126,6 @@ if not os.path.isfile(path_model):
                 tile_images.tile_and_save(train_path+map_file, tiles_path, tile_size=param_tile_size, x_offset=int(x_offset), y_offset=int(y_offset))
     else:
         pass # todo: folder present, but is it correctly tiled?
-    # todo: tile test data as well
 
     # # split img and mask tiles
     # map_tiles = filter(lambda f: not "_mask" in f, os.listdir(tiles_path))
@@ -146,9 +135,11 @@ if not os.path.isfile(path_model):
     #     shutil.move(tiles_path+mask_tile, tiles_path+"/masks/"+map_tile) # masks
 
     # filter tiles
-    filter_tiles.filter_dir(tiles_path, tiles_path, tile_fg_thresh)
+    fg_bg_factor = filter_tiles.filter_dir(tiles_path, tiles_path, tile_fg_thresh)
     map_tiles = list(filter(is_valid_map, os.listdir(tiles_path+"/imgs/")))
+    current_exp["num training tiles"] = len(map_tiles)
     print("%d train tiles after filtering" % len(map_tiles))
+    print("fg/fg factor: %f" % (fg_bg_factor))
 
     # random train-val split 
     val_tiles_path = maps_path[map_series] + "/val/tiles_%s_%s_%s/" % (param_tile_size, param_tile_offsets, tile_fg_thresh)
@@ -175,8 +166,7 @@ if not os.path.isfile(path_model):
         train_eth.LEARNING_RATE = param_lr
         train_eth.BATCH_SIZE = param_bs
         train_eth.pos_weight = param_weight
-        train_eth.NUM_WORKERS = 0 # todo: necessary, because torch subproccesses call this file here as well. should investigate this -> maybe call main() in subprocess or something?
-        train_eth.NUM_EPOCHS = 2#param_epochs
+        train_eth.NUM_EPOCHS = 20#param_epochs
         train_eth.TRAIN_IMG_DIR = tiles_path+"/imgs/"
         train_eth.TRAIN_MASK_DIR = tiles_path+"/masks/"
         train_eth.VAL_IMG_DIR = val_tiles_path+"/imgs/"
@@ -205,11 +195,15 @@ plt.savefig("plots/plot.png")
 plt.show() 
 
 # select epoch with best score/loss
-best_epoch = epochs[scores.index(min(scores))]
+best_epoch = epochs[scores.index(max(scores))]
 print("best model at epoch: %d" % best_epoch)
 
 # # check if test data is present
 #     # if no: abort
+
+# check if test data has truth masks
+synthesise_data.synthesise_maps_if_necessary(quads_path[map_series],test_path,"test")
+
 # check if test data is tiled with same settings
 tiles_path = test_path + "tiles_%s_%s_%s/" % (param_tile_size, param_tile_offsets, tile_fg_thresh)
 if not os.path.isdir(tiles_path): # todo: and check for files inside?
@@ -221,7 +215,7 @@ if not os.path.isdir(tiles_path): # todo: and check for files inside?
     offsets = list(map(lambda o: o.split("-"), param_tile_offsets))
     for map_file in os.listdir(test_path):
         for x_offset, y_offset in offsets:
-            tile_images.tile_and_save(test_path+map_file, tiles_path, tile_size=param_tile_size, x_offset=int(x_offset), y_offset=int(y_offset))
+            tile_images.tile_and_save(test_path+map_file, tiles_path, tile_size=param_tile_size, x_offset=int(x_offset), y_offset=int(y_offset), offset_step=200)
 else:
     print("test tiles present") # todo: folder present, but is it correctly tiled?
 
@@ -230,15 +224,14 @@ import persson_unet.predict_eth
 persson_unet.predict_eth.VAL_IMG_DIR = tiles_path+"/imgs/"
 persson_unet.predict_eth.VAL_MASK_DIR = tiles_path+"/masks/"
 persson_unet.predict_eth.model_path = path_model
-persson_unet.predict_eth.NUM_WORKERS = 0
-persson_unet.predict_eth.main()
+persson_unet.predict_eth.main() # todo: return test dice
 
 # merge test tiles to full predictions
 import merge_tiles
 os.makedirs(path_output + "/test/", exist_ok=True)
 merge_tiles.merge_dir("predictions/pred_tiles/", path_output + "/test/")
 print("saved test predictions to %s" % (path_output + "/test/"))
-os.remove("predictions/")
+shutil.rmtree("predictions/")
 
 # calculate scores for each prediction
 # current_exp["test dice"] = 1

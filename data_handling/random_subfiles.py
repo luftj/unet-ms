@@ -3,7 +3,7 @@ import shutil
 import random
 import argparse
 
-def sample_random(input,outdir, num_images, exclude, nomask=False):
+def sample_random(indir, outdir, num_images, exclude, nomask=False):
     if type(exclude) is list:
         exclude_list = []
     else:
@@ -12,10 +12,10 @@ def sample_random(input,outdir, num_images, exclude, nomask=False):
             for line in fr:
                 exclude_list.append(line.strip())
 
-    if "masks" in os.listdir(input):
+    if "masks" in os.listdir(indir):
         print("tiles")
-        masks_dir = input + "/masks/"#"E:/data/usgs/100k/imgs/tiles/masks/"
-        imgs_dir = input + "/imgs/"#"E:/data/usgs/100k/imgs/tiles/imgs/"
+        masks_dir = indir + "/masks/"#"E:/data/usgs/100k/imgs/tiles/masks/"
+        imgs_dir = indir + "/imgs/"#"E:/data/usgs/100k/imgs/tiles/imgs/"
         os.makedirs(outdir+"/masks/", exist_ok=True)
         os.makedirs(outdir+"/imgs/", exist_ok=True)
         files = sorted([f for f in os.listdir(masks_dir) if not f in exclude_list])
@@ -30,17 +30,18 @@ def sample_random(input,outdir, num_images, exclude, nomask=False):
         print("not tiles")
         os.makedirs(outdir, exist_ok=True)
         if nomask:
-            files = sorted([f for f in os.listdir(input) if not "_mask" in f and not f in exclude_list])
+            files = sorted([f for f in os.listdir(indir) if not "_mask" in f and not f in exclude_list])
         else:
-            files = sorted([f for f in os.listdir(input) if "_mask" in f and not f in exclude_list])
+            files = sorted([f for f in os.listdir(indir) if "_mask" in f and not f in exclude_list])
 
+        print("sampling: %d/%d"%(num_images,len(files)))
         sampled_images = random.sample(files, num_images)
 
         for img in sampled_images:
             print(img)
-            shutil.copyfile(input+img, outdir+"/"+img)
+            shutil.copyfile(indir+img, outdir+"/"+img)
             if not nomask:
-                shutil.copyfile(input+img.replace("_mask",""), outdir+"/"+img.replace("_mask",""))
+                shutil.copyfile(indir+img.replace("_mask",""), outdir+"/"+img.replace("_mask",""))
     return sampled_images
 
 if __name__ == "__main__":

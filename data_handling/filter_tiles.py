@@ -48,6 +48,8 @@ def filter_dir(indir, outdir, threshold, plot=False):
 
     avg_fact = sum(factors)/(len(factors) if len(factors)>0 else 1)
     print("avg fg/bg of filtered tiles:",avg_fact)
+    avg_fact_good = sum(cut_factors)/(len(cut_factors) if len(cut_factors)>0 else 1)
+    print("avg fg/bg of good tiles:",avg_fact_good)
     print("number of tiles filtered: %d/%d"%(len(factors),len(factors)+len(cut_factors)))
     if plot:
         from matplotlib import pyplot as plt
@@ -55,6 +57,7 @@ def filter_dir(indir, outdir, threshold, plot=False):
         plt.xticks(np.arange(0,max(factors),0.0005))
         plt.vlines(avg_fact, 0, len(factors)/10, colors="r")
         plt.show()
+    return avg_fact_good
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='',

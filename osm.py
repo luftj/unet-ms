@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 from time import sleep
 import requests
+import urllib
 import logging
 from osmtogeojson import osmtogeojson
 from pyproj import Transformer
