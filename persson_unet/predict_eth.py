@@ -57,13 +57,15 @@ def main():
     load_checkpoint(torch.load(model_path), model)
 
     # check accuracy
-    check_accuracy(val_loader, model, device=DEVICE)
+    score = check_accuracy(val_loader, model, device=DEVICE)
 
     # print predictions to a folder
     os.makedirs("predictions/pred_tiles/", exist_ok=True)
     save_predictions_as_imgs(
         val_loader, model, folder="predictions/", device=DEVICE
     )
+
+    return score
 
 
 if __name__ == "__main__":

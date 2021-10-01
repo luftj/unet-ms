@@ -224,7 +224,7 @@ import persson_unet.predict_eth
 persson_unet.predict_eth.VAL_IMG_DIR = tiles_path+"/imgs/"
 persson_unet.predict_eth.VAL_MASK_DIR = tiles_path+"/masks/"
 persson_unet.predict_eth.model_path = path_model
-persson_unet.predict_eth.main() # todo: return test dice
+test_dice = persson_unet.predict_eth.main() # returns test score
 
 # merge test tiles to full predictions
 import merge_tiles
@@ -235,6 +235,8 @@ shutil.rmtree("predictions/")
 
 # calculate scores for each prediction
 # current_exp["test dice"] = 1
+# current_exp["lowest loss"] = "0.1@100" # todo: add these to table
+# current_exp["highest train dice"] = "1.0@100"
 
 # append scores to list of experiment
 # write_experiment_to_excel("data\deep_segmentation_experiments.xlsx",current_exp)
