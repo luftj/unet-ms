@@ -62,6 +62,9 @@ quads_path = {
     #"USGS100": "E:/data/usgs/indices/CellGrid_30X60Minute.json",
     "USGS100": "/media/ecl2/DATA/jonas/usgs/CellGrid_30X60Minute.json",
 }
+index_path = {
+    "USGS100": "/media/ecl2/DATA/jonas/index/"
+}
 valid_map_ext = [".tif",".png"]
 
 print("%d maps found" % len(os.listdir(maps_path[map_series])))
@@ -70,6 +73,7 @@ test_path = maps_path[map_series] + "/test/"
 
 # check if already trained
 path_model = path_output + "model_%s.net" % (param_string())
+train_logfile = os.path.splitext(path_model)[0]+"_log.txt"
 if not os.path.isfile(path_model):
     # if no: train new model with params
     print("training new model at %s..." % path_model)
@@ -171,6 +175,7 @@ if not os.path.isfile(path_model):
         train_eth.TRAIN_MASK_DIR = tiles_path+"/masks/"
         train_eth.VAL_IMG_DIR = val_tiles_path+"/imgs/"
         train_eth.VAL_MASK_DIR = val_tiles_path+"/masks/"
+        train_eth.logfile = train_logfile
         os.makedirs("saved_images/pred_tiles/", exist_ok=True) # todo: this should be changed in training implementation
         # run training 
         train_eth.main()
@@ -182,17 +187,12 @@ if not os.path.isfile(path_model):
     # save model at model path
     shutil.move("my_checkpoint.pth.tar", path_model)
     
+from utils import train_scoring
+# get training scores
+current_exp["lowest loss"] = "@".join(train_scoring.get_best_dice(logfile=train_logfile)) # todo: add these to table
+current_exp["highest train dice"] = "@".join(train_scoring.get_best_loss(logfile=train_logfile))
 # make a plot of training run: e.g. loss over epochs, mark selected model
-with open("train_log.txt") as logfile:
-    scores = logfile.readlines()[1:]
-    epochs, scores = zip(*map(lambda s: s.split(","), scores))
-    epochs = list(map(int,epochs))
-    scores = list(map(float,scores))
-from matplotlib import pyplot as plt
-plt.plot(epochs,scores)
-os.makedirs("plots", exist_ok=True)
-plt.savefig("plots/plot.png")
-plt.show() 
+train_scoring.plot_train_scores(logfile=train_logfile, outdir=plot_dir)
 
 # select epoch with best score/loss
 best_epoch = epochs[scores.index(max(scores))]
@@ -233,13 +233,36 @@ merge_tiles.merge_dir("predictions/pred_tiles/", path_output + "/test/")
 print("saved test predictions to %s" % (path_output + "/test/"))
 shutil.rmtree("predictions/")
 
+# if not index present
+if not os.path.isfile(index_path[map_series]+"/index.ann"):
+    os.makedirs(index_path[map_series], exist_ok=True)
+    #   build index
+    print("rebuilding index...")
+    # create folders first
+    os.makedirs(config.reference_descriptors_folder, exist_ok=True)
+    os.makedirs(config.reference_keypoints_folder, exist_ok=True)
+    build_index(args.sheets)
+
 # calculate scores for each prediction
-# current_exp["test dice"] = 1
-# current_exp["lowest loss"] = "0.1@100" # todo: add these to table
-# current_exp["highest train dice"] = "1.0@100"
+current_exp["test dice"] = test_dice
+# todo: index rank
+import score_predictions
+pred_results = score_predictions.calc_scores_dir(path_output + "/test/", test_path, plot_dir) # todo: get index rank as well
+current_exp["avg test iou"] = sum([x["iou"] for x in pred_results])/len(pred_results)
+current_exp["avg test dice"] = sum([x["dice"] for x in pred_results])/len(pred_results)
+current_exp["avg test index rank"] = sum([x["index rank"] for x in pred_results])/len(pred_results)
+current_exp["avg test num matches"] = sum([x["num matches"] for x in pred_results])/len(pred_results)
+current_exp["avg test ransac"] = sum([x["ransac"] for x in pred_results])/len(pred_results)
 
 # append scores to list of experiment
 # write_experiment_to_excel("data\deep_segmentation_experiments.xlsx",current_exp)
 # upload_experiments_file(infile)
 
+# find experiment with best result so far?
 # make some plots for the experiments
+# plot avg score comparison between different experiments
+# how to choose sensible experiments from table?
+# maybe manual list and compare the current to manually set "best so far"
+
+# compare architectures: make plot of best experiment for each architecture -> best according to which score?
+# compare map series

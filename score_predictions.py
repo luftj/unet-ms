@@ -37,7 +37,7 @@ def extract_features(image, first_n=None):
 
     return kps, dsc
 
-def plot_template_matches(keypoints_q, keypoints_r, inliers,query_image, reference_image_border):
+def plot_template_matches(keypoints_q, keypoints_r, inliers, query_image, reference_image_border, plot_dir):
     import matplotlib.pyplot as plt
     from skimage.feature import plot_matches
 
@@ -60,9 +60,9 @@ def plot_template_matches(keypoints_q, keypoints_r, inliers,query_image, referen
     # plt.yticks([],[])
     # for spine in ax.spines:
     #     ax.spines[spine].set_visible(False)
-    plt.show()
+    plt.savefig(plotdir+"/template_matches.png")
 
-def estimate_transform(keypoints_q, keypoints_r, query_image, reference_image, plot=False):
+def estimate_transform(keypoints_q, keypoints_r, query_image, reference_image, plot_dir=None):
     from skimage.measure import ransac
     from skimage.transform import AffineTransform, SimilarityTransform
     #print("number of used keypoints: %d", len(keypoints_q))
@@ -95,7 +95,7 @@ def estimate_transform(keypoints_q, keypoints_r, query_image, reference_image, p
     model = model.astype(np.float32) # opencv.warp doesn't take double
 
     if plot:
-        plot_template_matches(keypoints_q,keypoints_r, inliers, query_image, reference_image)
+        plot_template_matches(keypoints_q,keypoints_r, inliers, query_image, reference_image, plot_dir)
         # from skimage.transform import warp
         # from matplotlib import pyplot as plt
         # plt.subplot("131")
@@ -111,7 +111,7 @@ def estimate_transform(keypoints_q, keypoints_r, query_image, reference_image, p
 
     return num_inliers, model
 
-def ransac_score(pred_img, truth_img, plot=False, downscale_width=500):
+def ransac_score(pred_img, truth_img, plot_dir=None, downscale_width=500):
     # reduce image size for performance with fixed aspect ratio
     # print("input size", pred_img.shape)
     width, height = (downscale_width, int(pred_img.shape[0]*(downscale_width/pred_img.shape[1])) )
@@ -139,35 +139,29 @@ def ransac_score(pred_img, truth_img, plot=False, downscale_width=500):
     keypoints_q = np.array(keypoints_q)
     keypoints_r = np.array(keypoints_r)
     
-    num_inliers, transform_model = estimate_transform(keypoints_q, keypoints_r, query_image_small, reference_image_small, plot)
+    num_inliers, transform_model = estimate_transform(keypoints_q, keypoints_r, query_image_small, reference_image_small, plot_dir)
     # print("num inliers", num_inliers)
     return len(matches), num_inliers
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='',
-                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('prediction', help='directory')
-    parser.add_argument('truth', help='directory')
-    parser.add_argument('--plot', help='plot prediction difference', default=False, action="store_true")
-    args = parser.parse_args()
-    # python score_predictions.py "/e/experiments/deepseg_exp/26/" "/e/data/usgs/100k/selected/test/"
+def calc_scores_dir(predictions_dir, truth_dir, plot_dir=None):
+    results = []
 
-    for dir in os.listdir(args.prediction):
+    for dir in os.listdir(predictions_dir):
         # if not os.path.isdir(args.prediction + dir):
         #     continue
-        dir = args.prediction + "/" + dir
+        dir = predictions_dir + "/" + dir
         print("scoring %s" % dir)
         try:
             pred_file_name = next(filter(lambda x: os.path.splitext(x)[-1] == ".png"  , os.listdir(dir)))
         except StopIteration:
             continue
-        # print(os.listdir(args.truth))
-        truth_file = list(filter(lambda x: (os.path.splitext(pred_file_name)[0] +"_mask" == os.path.splitext(x)[0]) , os.listdir(args.truth)))
+        # print(os.listdir(truth_dir))
+        truth_file = list(filter(lambda x: (os.path.splitext(pred_file_name)[0] +"_mask" == os.path.splitext(x)[0]) , os.listdir(truth_dir)))
         if len(truth_file) == 0:
             print(pred_file_name, "couldn't find truth mask!")
             continue
         pred_file = dir + "/" + pred_file_name
-        truth_file = args.truth + "/" + truth_file[0]
+        truth_file = truth_dir + "/" + truth_file[0]
 
         pred_img = Image.open(pred_file)
         truth_img = Image.open(truth_file).crop((0,0,*pred_img.size))
@@ -183,7 +177,7 @@ if __name__ == "__main__":
         dice = 2*iou/(1+iou)
         # print("Dice:", dice)
 
-        if args.plot:
+        if plot_dir:
             from matplotlib import pyplot as plt
             difference = np.zeros((*pred_array.shape,3), dtype=np.int32)
             difference[:,:,0] = np.subtract(pred_array, truth_array)
@@ -195,7 +189,29 @@ if __name__ == "__main__":
             plt.show()
         
         # ransac score as with MaRE
-        # todo: can we get an index score as well? train index on all quads?
-        num_matches, ransac_score_result = ransac_score( np.array(pred_img)[:,:,0], np.array(truth_img), plot=args.plot)
+        num_matches, ransac_score_result = ransac_score( np.array(pred_img)[:,:,0], np.array(truth_img), plot_dir=plot_dir)
 
-        print("%s,%0.3f,%0.3f,%d,%d" % (pred_file_name, iou, dice, num_matches, ransac_score_result))
+        # todo: can we get an index score as well? train index on all quads?
+        index_rank = -1
+
+        result = {  "file": pred_file_name,
+                    "iou": iou,
+                    "dice": dice,
+                    "index rank": index_rank,
+                    "num matches": num_matches,
+                    "ransac": ransac_score_result })
+        results.append(result)
+        print(result)
+        # print("%s,%0.3f,%0.3f,%d,%d" % (pred_file_name, iou, dice, num_matches, ransac_score_result))
+    return results
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='calculate scores for a full prediction image',
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('prediction', help='directory with prediction images')
+    parser.add_argument('truth', help='directory with coresponding truth masks')
+    parser.add_argument('--plot', help='plot prediction difference', default=None)
+    args = parser.parse_args()
+    # python score_predictions.py "/e/experiments/deepseg_exp/26/" "/e/data/usgs/100k/selected/test/"
+
+    calc_scores_dir(args.prediction, args.truth, args.plot)
