@@ -65,7 +65,7 @@ def main():
         val_loader, model, folder="predictions/", device=DEVICE
     )
 
-    return score
+    return float(score)
 
 
 if __name__ == "__main__":

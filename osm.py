@@ -9,7 +9,7 @@ import logging
 from osmtogeojson import osmtogeojson
 from pyproj import Transformer
 
-from config import path_osm, proj_map, proj_osm, proj_sheets, osm_query, force_osm_download, osm_url, draw_ocean_polygon, download_timeout
+from config import path_osm, proj_map, proj_osm, proj_sheets, osm_query, force_osm_download, osm_url, draw_ocean_polygon, download_timeout, fill_polys, water_polys_file
 
 transform_osm_to_map = Transformer.from_proj(proj_osm, proj_map, skip_equivalent=True, always_xy=True)
 transform_sheet_to_osm = Transformer.from_proj(proj_sheets, proj_osm, skip_equivalent=True, always_xy=True)
@@ -83,11 +83,10 @@ def coord_to_point(coords, bbox, img_size, castint=True):
     return (x,y)
 
 def clip_ocean_poly(bbox):
-    water_polys_file = "E:/data/water_polygons/simplified_water_wgs84.geojson"
     coords = " ".join(map(str,bbox))
     cropped_output_file = "%s/water_poly_%s.geojson" % (path_osm, coords.replace(" ","-"))
     print("clipping ocean...")
-    command = "ogr2ogr -spat %s -clipsrc %s %s %s" % (coords, coords, cropped_output_file, water_polys_file)
+    command = "ogr2ogr -f 'GeoJSON' -spat %s -clipsrc %s %s %s" % (coords, coords, cropped_output_file, water_polys_file)
     print(command)
     os.system(command)
 
@@ -183,19 +182,24 @@ def paint_features(json_data, bbox=[16.3333,54.25,16.8333333,54.5], img_size=(10
                 points = np.array(points)
                 # cv2.fillConvexPoly(image, points, 255)
                 if "natural" in feature["properties"] and feature["properties"]["natural"] == "coastline":
+                    # coastline polys are islands
                     if draw_ocean_polygon:
                         cv2.fillPoly(image, [points], 0) # black islands on top of the white ocean
                     else:
-                        cv2.polylines(image, [points], True, 255, thickness=3)
-                else:
-                    cv2.polylines(image, [points], True, 255, thickness=3)
-                    # cv2.fillPoly(image, [points], 255)
-
+                        cv2.polylines(image, [points], True, 255, thickness=3) # islands as outlines
+                else: # any other polys (lakes, etc...)
+                    if fill_polys:
+                        cv2.fillPoly(image, [points], 255)
+                    else:
+                        cv2.polylines(image,[points],True,255,thickness=3)
                 # draw holes
                 for hole in feature["geometry"]["coordinates"][1:]:
                     points = [ coord_to_point(p,bbox,img_size) for p in hole]
                     points = np.array(points)
-                    cv2.fillPoly(image, [points], 0)
+                    if fill_polys:
+                        cv2.fillPoly(image, [points], 0)
+                    else: # e.g. islands in lakes
+                        cv2.polylines(image,[points],True,255,thickness=3)
                 # if feature["properties"].get("name","") =="Lake Michigan":
                 #     print(len(feature["geometry"]["coordinates"][0]))
                 
@@ -204,8 +208,10 @@ def paint_features(json_data, bbox=[16.3333,54.25,16.8333333,54.5], img_size=(10
                     points = [ coord_to_point(p,bbox,img_size) for p in poly ]
                     points = np.array(points)
                     # cv2.fillConvexPoly(image, points, 255)
-                    cv2.polylines(image, [points], True, 255, thickness=3)
-                    # cv2.fillPoly(image, [points], 255)
+                    if fill_polys:
+                        cv2.fillPoly(image, [points], 255)
+                    else:
+                        cv2.polylines(image,[points],True,255,thickness=3)
             elif feature["geometry"]["type"] == "GeometryCollection":
                 # return None
                 # print(feature["features"])

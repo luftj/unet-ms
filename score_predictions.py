@@ -53,14 +53,14 @@ def plot_template_matches(keypoints_q, keypoints_r, inliers, query_image, refere
                 matches)#,alignment="vertical")
     plot_matches(ax[1], (255-query_image), (255-reference_image_border), keypoints_q, keypoints_r,
                 matches[inliers])#,alignment="vertical")
-    y =query_image.shape[0]
+    # y = query_image.shape[0]
     # plt.plot([500,1000,1000,500,500],[y,y,0,0,y],"r",linewidth=2)
     # plt.plot([530,970,970,530,530],[y-30,y-30,30,30,y-30],"g",linewidth=1)
     # plt.xticks([],[])
     # plt.yticks([],[])
-    # for spine in ax.spines:
-    #     ax.spines[spine].set_visible(False)
-    plt.savefig(plotdir+"/template_matches.png")
+    for spine in ax.spines:
+        ax.spines[spine].set_visible(False)
+    plt.savefig(plot_dir+"/template_matches.png")
 
 def estimate_transform(keypoints_q, keypoints_r, query_image, reference_image, plot_dir=None):
     from skimage.measure import ransac
@@ -94,7 +94,7 @@ def estimate_transform(keypoints_q, keypoints_r, query_image, reference_image, p
     model = np.linalg.inv(model)
     model = model.astype(np.float32) # opencv.warp doesn't take double
 
-    if plot:
+    if plot_dir:
         plot_template_matches(keypoints_q,keypoints_r, inliers, query_image, reference_image, plot_dir)
         # from skimage.transform import warp
         # from matplotlib import pyplot as plt
@@ -146,21 +146,13 @@ def ransac_score(pred_img, truth_img, plot_dir=None, downscale_width=500):
 def calc_scores_dir(predictions_dir, truth_dir, plot_dir=None):
     results = []
 
-    for dir in os.listdir(predictions_dir):
-        # if not os.path.isdir(args.prediction + dir):
-        #     continue
-        dir = predictions_dir + "/" + dir
-        print("scoring %s" % dir)
-        try:
-            pred_file_name = next(filter(lambda x: os.path.splitext(x)[-1] == ".png"  , os.listdir(dir)))
-        except StopIteration:
-            continue
-        # print(os.listdir(truth_dir))
+    for pred_file_name in os.listdir(predictions_dir):
+        print("scoring %s" % pred_file_name)
         truth_file = list(filter(lambda x: (os.path.splitext(pred_file_name)[0] +"_mask" == os.path.splitext(x)[0]) , os.listdir(truth_dir)))
         if len(truth_file) == 0:
             print(pred_file_name, "couldn't find truth mask!")
             continue
-        pred_file = dir + "/" + pred_file_name
+        pred_file = predictions_dir + "/" + pred_file_name
         truth_file = truth_dir + "/" + truth_file[0]
 
         pred_img = Image.open(pred_file)
@@ -199,7 +191,7 @@ def calc_scores_dir(predictions_dir, truth_dir, plot_dir=None):
                     "dice": dice,
                     "index rank": index_rank,
                     "num matches": num_matches,
-                    "ransac": ransac_score_result })
+                    "ransac": ransac_score_result }
         results.append(result)
         print(result)
         # print("%s,%0.3f,%0.3f,%d,%d" % (pred_file_name, iou, dice, num_matches, ransac_score_result))

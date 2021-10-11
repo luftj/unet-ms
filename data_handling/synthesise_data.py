@@ -30,17 +30,20 @@ def get_pixel_from_raster(georef_image_path, lonlat):
     return xy
 
 def synthesise_all(maps_dir, imgs_dir, quads_path):
+    synthesise_list(file_list=os.listdir(maps_dir))
+
+def synthesise_list(maps_dir, imgs_dir, quads_path, file_list):
     # load quadrangles data
     with open(quads_path, encoding="utf8") as fr:
         quadrangles = { f["properties"][config.quadrangles_key] : f["geometry"]["coordinates"][0] for f in json.load(fr)["features"]}
-
     # iterate over maps
     valid_ext = [".tif"]
-    for file in os.listdir(maps_dir): # ["PA_Bradford_170431_1980_100000_geo.tif"]:#
+    for file in file_list: # ["PA_Bradford_170431_1980_100000_geo.tif"]:#
         if not os.path.splitext(file)[-1] in valid_ext:
             continue
-        map_name = file.split("_")[1]
-        map_name = map_name.replace("St ","Saint ")
+        # map_name = file.split("_")[1] # this is only for usgs100
+        map_name = os.path.splitext(file)[0] #this si for kdro100
+        # map_name = map_name.replace("St ","Saint ")
         print(file)
         print(map_name)
         # ret = osm.proj_map = subprocess.run("gdalinfo "+ maps_dir+"/"+file)
@@ -80,7 +83,8 @@ def synthesise_all(maps_dir, imgs_dir, quads_path):
         print("neatline points",margin)
         xs, ys = list(zip(*margin))
         margin_left = min(xs)
-        margin_right = xs[-1]#max(xs)
+        # margin_right = xs[-1]#max(xs) # HACK: trapezoid usgs100?
+        margin_right = max(xs)
         margin_top = min(ys)
         margin_bottom = max(ys)
         print(margin_left,    margin_right,    margin_top,    margin_bottom   )
@@ -121,7 +125,7 @@ def synthesise_maps_if_necessary(maps_dir, out_dir,set_name=""):
     if len(test_maps_without_masks) > 0: # todo: or if OSM params changed
         # if no: synthesise data
         print("synthesising %d missing %s masks..." % (len(test_maps_without_masks), set_name))
-        synthesise_data.synthesise_all(out_dir, out_dir, maps_dir)
+        synthesise_list(out_dir, out_dir, maps_dir, file_list=test_maps_without_masks)
     else:
         print("all %s masks present" % set_name)
 
