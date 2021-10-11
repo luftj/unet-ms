@@ -208,19 +208,23 @@ if not os.path.isfile(path_model):
     # todo: set data augmentation
     # todo: keep track of dice score and avg loss over the epochs
 
-    from utils import train_scoring
-    # get training scores
-    # todo: add these to experiments spreadsheet
-    current_exp["lowest loss"] = "%s@%s" % (train_scoring.get_best_loss(logfile=train_logfile))
-    train_dice,best_epoch = train_scoring.get_best_dice(logfile=train_logfile)
-    current_exp["highest train dice"] = "%s@%s" % (train_dice,best_epoch)
-    # make a plot of training run: e.g. loss over epochs, mark selected model
-    train_scoring.plot_train_scores(logfile=train_logfile, outdir=plot_dir)
+from utils import train_scoring
+# get training scores
+# todo: add these to experiments spreadsheet
+train_loss, best_epoch_loss = train_scoring.get_best_loss(logfile=train_logfile)
+current_exp["lowest loss"] = "%s@%s" % (train_loss,best_epoch_loss)
+train_dice, best_epoch = train_scoring.get_best_dice(logfile=train_logfile)
+current_exp["highest train dice"] = "%s@%s" % (train_dice,best_epoch)
+# make a plot of training run: e.g. loss over epochs, mark selected model
+train_scoring.plot_train_scores(logfile=train_logfile, outdir=plot_dir)
 
-    # select epoch with best dice score for prediction
-    print("best model at epoch: %d" % best_epoch)
+# select epoch with best dice score for prediction
+print("best model at epoch: %d" % best_epoch)
+    
+if not os.path.isfile(path_model):
     # save best model to model path
     shutil.move("checkpoint_%d.pth.tar" % best_epoch, path_model)
+    shutil.move("checkpoint_%d.pth.tar" % best_epoch_loss, path_model.replace(".net","_loss.net"))
     # todo: remove all other model files
 
 # # check if test data is present
@@ -280,7 +284,7 @@ current_exp["avg test dice"] = sum([x["dice"] for x in pred_results])/len(pred_r
 current_exp["avg test index rank"] = sum([x["index rank"] for x in pred_results])/len(pred_results)
 current_exp["avg test num matches"] = sum([x["num matches"] for x in pred_results])/len(pred_results)
 current_exp["avg test ransac"] = sum([x["ransac"] for x in pred_results])/len(pred_results)
-# todo: also calculate accuracy, precision, recall, ...
+# todo: also calculate accuracy, precision, recall, ...?
 
 # append scores to list of experiment
 utils.exp_schedule.write_experiment_to_excel(infile, current_exp)

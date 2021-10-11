@@ -58,8 +58,8 @@ def plot_template_matches(keypoints_q, keypoints_r, inliers, query_image, refere
     # plt.plot([530,970,970,530,530],[y-30,y-30,30,30,y-30],"g",linewidth=1)
     # plt.xticks([],[])
     # plt.yticks([],[])
-    for spine in ax.spines:
-        ax.spines[spine].set_visible(False)
+    # for spine in ax.spines:
+    #     ax.spines[spine].set_visible(False)
     plt.savefig(plot_dir+"/template_matches.png")
 
 def estimate_transform(keypoints_q, keypoints_r, query_image, reference_image, plot_dir=None):
