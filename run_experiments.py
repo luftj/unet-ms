@@ -185,13 +185,38 @@ if not os.path.isfile(path_model):
     print("training new model at %s..." % path_model)
     # import chosen model implementation
     if param_model == "persson":
-        pass
-    if param_model == "ronneberger":
-        pass
+        from persson_unet import train_persson
+        train_persson.LEARNING_RATE = param_lr
+        train_persson.BATCH_SIZE = param_bs
+        train_persson.pos_weight = param_weight
+        train_persson.NUM_EPOCHS = param_epochs
+        train_persson.TRAIN_IMG_DIR = tiles_path+"/imgs/"
+        train_persson.TRAIN_MASK_DIR = tiles_path+"/masks/"
+        train_persson.VAL_IMG_DIR = val_tiles_path+"/imgs/"
+        train_persson.VAL_MASK_DIR = val_tiles_path+"/masks/"
+        train_persson.logfile = train_logfile
+        os.makedirs("saved_images/pred_tiles/", exist_ok=True) # todo: this should be changed in training implementation
+        os.makedirs("checkpoints/", exist_ok=True)
+        # run training 
+        train_persson.main()
     elif param_model == "persson_32-64-128-256":
         pass
+    if param_model == "ronneberger":
+        from persson_unet import train_ronneberger
+        train_ronneberger.LEARNING_RATE = param_lr
+        train_ronneberger.BATCH_SIZE = param_bs
+        train_ronneberger.pos_weight = param_weight
+        train_ronneberger.NUM_EPOCHS = param_epochs
+        train_ronneberger.TRAIN_IMG_DIR = tiles_path+"/imgs/"
+        train_ronneberger.TRAIN_MASK_DIR = tiles_path+"/masks/"
+        train_ronneberger.VAL_IMG_DIR = val_tiles_path+"/imgs/"
+        train_ronneberger.VAL_MASK_DIR = val_tiles_path+"/masks/"
+        train_ronneberger.logfile = train_logfile
+        os.makedirs("saved_images/pred_tiles/", exist_ok=True) # todo: this should be changed in training implementation
+        os.makedirs("checkpoints/", exist_ok=True)
+        # run training 
+        train_ronneberger.main()
     elif param_model == "eth":
-        pass
         from persson_unet import train_eth
         train_eth.LEARNING_RATE = param_lr
         train_eth.BATCH_SIZE = param_bs
