@@ -120,7 +120,7 @@ def main():
                 "state_dict": model.state_dict(),
                 "optimizer":optimizer.state_dict(),
             }
-            save_checkpoint(checkpoint,filename="checkpoint_%d.pth.tar" % epoch)
+            save_checkpoint(checkpoint,filename="checkpoints/checkpoint_%d.pth.tar" % epoch)
 
             # check accuracy
             score = check_accuracy(val_loader, model, device=DEVICE)

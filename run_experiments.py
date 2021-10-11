@@ -186,6 +186,8 @@ if not os.path.isfile(path_model):
     # import chosen model implementation
     if param_model == "persson":
         pass
+    if param_model == "ronneberger":
+        pass
     elif param_model == "persson_32-64-128-256":
         pass
     elif param_model == "eth":
@@ -201,6 +203,7 @@ if not os.path.isfile(path_model):
         train_eth.VAL_MASK_DIR = val_tiles_path+"/masks/"
         train_eth.logfile = train_logfile
         os.makedirs("saved_images/pred_tiles/", exist_ok=True) # todo: this should be changed in training implementation
+        os.makedirs("checkpoints/", exist_ok=True)
         # run training 
         train_eth.main()
     else:
@@ -223,9 +226,10 @@ print("best model at epoch: %d" % best_epoch)
     
 if not os.path.isfile(path_model):
     # save best model to model path
-    shutil.move("checkpoint_%d.pth.tar" % best_epoch, path_model)
-    shutil.move("checkpoint_%d.pth.tar" % best_epoch_loss, path_model.replace(".net","_loss.net"))
-    # todo: remove all other model files
+    shutil.move("checkpoints/checkpoint_%d.pth.tar" % best_epoch, path_model)
+    shutil.move("checkpoints/checkpoint_%d.pth.tar" % best_epoch_loss, path_model.replace(".net","_loss.net"))
+    # remove all other model files
+    shutil.rmtree("checkpoints/")
 
 # # check if test data is present
 #     # if no: abort
