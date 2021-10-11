@@ -28,7 +28,7 @@ map_series = current_exp["Training series"]
 param_model = current_exp["model"]
 param_lr = float(current_exp["learning rate"])
 param_bs = int(current_exp["batch size"])
-param_weight = int(current_exp["pos_weight"])
+param_weight = int(current_exp["pos_weight"]) # calculated if not given
 param_epochs = int(current_exp["epochs"])
 
 param_num_train_maps = 10 # if 0, use fixed maps, else sample randomly
@@ -56,14 +56,23 @@ os.makedirs(path_output, exist_ok=True)
 maps_path = {
     #"USGS100": "E:/data/usgs/100k/imgs/",
     "USGS100": "/media/ecl2/DATA/jonas/usgs/100k_raw/",
-    "KDR100": "E:/data/deutsches_reich/SLUB/cut/raw/"
+    "KDR100": "E:/data/deutsches_reich/SLUB/cut/raw/",
+    "kdr100_6x2_editionA_manualtest": "/media/ecl2/DATA/jonas/deutsches_reich/kdr100_6x2_editionA_manualtest/",
+    "kdr100_6x2_editionB_manualtest": "/media/ecl2/DATA/jonas/deutsches_reich/kdr100_6x2_editionB_manualtest/",
+    "kdr100_12x4_editionAB_manualtest": "/media/ecl2/DATA/jonas/deutsches_reich/kdr100_12x4_editionAB_manualtest/"
 }
 quads_path = {
     #"USGS100": "E:/data/usgs/indices/CellGrid_30X60Minute.json",
     "USGS100": "/media/ecl2/DATA/jonas/usgs/CellGrid_30X60Minute.json",
+    "kdr100_6x2_editionA_manualtest": "/media/ecl2/DATA/jonas/deutsches_reich/Blattschnitt/blattschnitt_dr100_regular.geojson/",
+    "kdr100_6x2_editionB_manualtest": "/media/ecl2/DATA/jonas/deutsches_reich/Blattschnitt/blattschnitt_dr100_regular.geojson/",
+    "kdr100_12x4_editionAB_manualtest": "/media/ecl2/DATA/jonas/deutsches_reich/Blattschnitt/blattschnitt_dr100_regular.geojson/"
 }
 index_path = {
-    "USGS100": "/media/ecl2/DATA/jonas/index/"
+    "USGS100": "/media/ecl2/DATA/jonas/index/",
+    "kdr100_6x2_editionA_manualtest": "/media/ecl2/DATA/jonas/experiments/kdr_index_regular/",
+    "kdr100_6x2_editionB_manualtest": "/media/ecl2/DATA/jonas/experiments/kdr_index_regular/",
+    "kdr100_12x4_editionAB_manualtest": "/media/ecl2/DATA/jonas/experiments/kdr_index_regular/"
 }
 valid_map_ext = [".tif",".png"]
 
@@ -143,7 +152,9 @@ if not os.path.isfile(path_model):
     map_tiles = list(filter(is_valid_map, os.listdir(tiles_path+"/imgs/")))
     current_exp["num training tiles"] = len(map_tiles)
     print("%d train tiles after filtering" % len(map_tiles))
-    print("fg/fg factor: %f" % (fg_bg_factor))
+    print("fg/bg factor: %f" % (fg_bg_factor))
+    if not param_weight:
+        param_weight = 1.0/fg_bg_factor
 
     # random train-val split 
     val_tiles_path = maps_path[map_series] + "/val/tiles_%s_%s_%s/" % (param_tile_size, param_tile_offsets, tile_fg_thresh)
@@ -176,6 +187,7 @@ if not os.path.isfile(path_model):
         train_eth.VAL_IMG_DIR = val_tiles_path+"/imgs/"
         train_eth.VAL_MASK_DIR = val_tiles_path+"/masks/"
         train_eth.logfile = train_logfile
+        # todo: store all intermediate models
         os.makedirs("saved_images/pred_tiles/", exist_ok=True) # todo: this should be changed in training implementation
         # run training 
         train_eth.main()
@@ -190,13 +202,15 @@ if not os.path.isfile(path_model):
 from utils import train_scoring
 # get training scores
 current_exp["lowest loss"] = "@".join(train_scoring.get_best_dice(logfile=train_logfile)) # todo: add these to table
-current_exp["highest train dice"] = "@".join(train_scoring.get_best_loss(logfile=train_logfile))
+train_dice,best_epoch = train_scoring.get_best_loss(logfile=train_logfile)
+current_exp["highest train dice"] = "@".join(train_dice,best_epoch)
 # make a plot of training run: e.g. loss over epochs, mark selected model
+plot_dir="plots/"
 train_scoring.plot_train_scores(logfile=train_logfile, outdir=plot_dir)
 
-# select epoch with best score/loss
-best_epoch = epochs[scores.index(max(scores))]
+# select epoch with best score/loss for prediction
 print("best model at epoch: %d" % best_epoch)
+# todo: remove all other model files
 
 # # check if test data is present
 #     # if no: abort
@@ -224,6 +238,7 @@ import persson_unet.predict_eth
 persson_unet.predict_eth.VAL_IMG_DIR = tiles_path+"/imgs/"
 persson_unet.predict_eth.VAL_MASK_DIR = tiles_path+"/masks/"
 persson_unet.predict_eth.model_path = path_model
+# todo: load model from best epoch
 test_dice = persson_unet.predict_eth.main() # returns test score
 
 # merge test tiles to full predictions
@@ -234,14 +249,16 @@ print("saved test predictions to %s" % (path_output + "/test/"))
 shutil.rmtree("predictions/")
 
 # if not index present
-if not os.path.isfile(index_path[map_series]+"/index.ann"):
-    os.makedirs(index_path[map_series], exist_ok=True)
-    #   build index
-    print("rebuilding index...")
-    # create folders first
-    os.makedirs(config.reference_descriptors_folder, exist_ok=True)
-    os.makedirs(config.reference_keypoints_folder, exist_ok=True)
-    build_index(args.sheets)
+# if not os.path.isfile(index_path[map_series]+"/index.ann"):
+#     os.makedirs(index_path[map_series], exist_ok=True)
+#     #   build index
+#     print("rebuilding index...")
+#     raise NotImplementedError("index rebuilding not imported yet...")
+#     # create folders first
+#     os.makedirs(config.reference_descriptors_folder, exist_ok=True)
+#     os.makedirs(config.reference_keypoints_folder, exist_ok=True)
+#     import indexing
+#     indexing.build_index(quads_path[map_series])
 
 # calculate scores for each prediction
 current_exp["test dice"] = test_dice
