@@ -1,6 +1,6 @@
 import torch
 import torchvision
-from persson_unet.dataset_eth import CarvanaDataset
+from persson_unet.dataset import CarvanaDataset
 from torch.utils.data import DataLoader
 import re
 
