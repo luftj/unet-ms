@@ -11,6 +11,30 @@ def load_checkpoint(checkpoint, model):
     print("=> Loading checkpoint")
     model.load_state_dict(checkpoint["state_dict"])
 
+def get_val_loader(
+    val_dir,
+    val_maskdir,
+    batch_size,
+    val_transform,
+    num_workers=4,
+    pin_memory=True,
+    maskcrop=0
+):
+    val_ds = CarvanaDataset(
+        image_dir=val_dir,
+        mask_dir=val_maskdir,
+        transform=val_transform,
+        maskcrop=maskcrop
+    )
+    val_loader = DataLoader(
+        val_ds,
+        batch_size=batch_size,
+        num_workers=num_workers,
+        pin_memory=pin_memory,
+        shuffle=False,
+    )
+    return val_loader
+
 def get_loaders(
     train_dir,
     train_maskdir,
@@ -21,6 +45,7 @@ def get_loaders(
     val_transform,
     num_workers=4,
     pin_memory=True,
+    maskcrop=0
 ):
     train_ds = CarvanaDataset(
         image_dir=train_dir,
@@ -40,6 +65,7 @@ def get_loaders(
         image_dir=val_dir,
         mask_dir=val_maskdir,
         transform=val_transform,
+        maskcrop=maskcrop
     )
 
     val_loader = DataLoader(
@@ -77,17 +103,25 @@ def check_accuracy(loader, model, device="cuda"):
     model.train()
 
 def save_predictions_as_imgs(
-    loader, model, folder="saved_images/", device="cuda"
+    loader, model, folder="saved_images/pred_tiles/", device="cuda", maskcrop=None
 ):
     model.eval()
-    for idx, (x, y) in enumerate(loader):
+    for idx, (x, y, n) in enumerate(loader):
         x = x.to(device=device)
         with torch.no_grad():
             preds = torch.sigmoid(model(x))
             preds = (preds > 0.5).float()
+
+        if maskcrop:
+            coords = re.findall(r"[0-9]+-[0-9]+",n[0])[0].split("-")
+            new_coords = "%d-%d"%(int(coords[0])+maskcrop,int(coords[1])+maskcrop)
+            filename = n[0].replace("%s-%s"%(coords[0],coords[1]),new_coords)
+        else:
+            filename = n[0]
+        
         torchvision.utils.save_image(
-            preds, f"{folder}/pred_{idx}.png"
+            preds, f"{folder}/{filename}.png"
         )
-        torchvision.utils.save_image(y.unsqueeze(1), f"{folder}{idx}.png")
+        # torchvision.utils.save_image(y.unsqueeze(1), f"{folder}{idx}.png")
 
     model.train()

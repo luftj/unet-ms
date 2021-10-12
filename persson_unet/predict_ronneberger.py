@@ -4,7 +4,7 @@ import albumentations as A
 from albumentations.pytorch import ToTensorV2
 import torch.nn as nn
 import torch.optim as optim
-from persson_unet.model_eth import UNET
+from persson_unet.model_ronneberger import UNET
 from persson_unet.utils import (
     load_checkpoint,
     get_val_loader,
@@ -19,9 +19,9 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 BATCH_SIZE = 1
 NUM_WORKERS = 2 if DEVICE=="cuda" else 0
 pos_weight = 60
-IMAGE_HEIGHT = 320
-IMAGE_WIDTH = 320
-maskcrop = 60
+IMAGE_HEIGHT = 572
+IMAGE_WIDTH = 572
+maskcrop=92
 PIN_MEMORY = True
 LOAD_MODEL = False
 VAL_IMG_DIR = "data/val_images/"

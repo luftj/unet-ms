@@ -6,7 +6,7 @@ from tqdm import tqdm
 import torch.nn as nn
 import torch.optim as optim
 from persson_unet.model_ronneberger import UNET
-from persson_unet.utils_ronneberger import (
+from persson_unet.utils import (
     load_checkpoint,
     save_checkpoint,
     get_loaders,
@@ -23,6 +23,7 @@ NUM_WORKERS = 2 if DEVICE=="cuda" else 0
 pos_weight = 60
 IMAGE_HEIGHT = 572
 IMAGE_WIDTH = 572 
+maskcrop = 92 # masks are 388x388
 PIN_MEMORY = True
 LOAD_MODEL = False
 TRAIN_IMG_DIR = "data/train_images/"
@@ -100,6 +101,7 @@ def main():
         val_transforms,
         NUM_WORKERS,
         PIN_MEMORY,
+        maskcrop=maskcrop
     )
 
     if LOAD_MODEL:
@@ -128,7 +130,7 @@ def main():
 
             # print some examples to a folder
             save_predictions_as_imgs(
-                val_loader, model, folder="saved_images/", device=DEVICE
+                val_loader, model, folder="saved_images/pred_tiles/", device=DEVICE, maskcrop=maskcrop
             )
 
 

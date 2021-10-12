@@ -1,6 +1,6 @@
 import torch
 import torchvision
-from persson_unet.dataset_ronneberger import CarvanaDataset
+from persson_unet.dataset import CarvanaDataset
 from torch.utils.data import DataLoader
 import re
 
@@ -24,6 +24,7 @@ def get_val_loader(
         image_dir=val_dir,
         mask_dir=val_maskdir,
         transform=val_transform,
+        maskcrop=92
     )
 
     val_loader = DataLoader(

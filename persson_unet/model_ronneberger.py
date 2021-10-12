@@ -52,43 +52,33 @@ class UNET(nn.Module):
 
         # encoder
         x1 = self.down_conv_1(image) #
-        print(x1.size())
         x = self.max_pool_2x2(x1)
         x2 = self.down_conv_2(x) #
-        print(x2.size())
         x = self.max_pool_2x2(x2)
         x3 = self.down_conv_3(x) #
-        print(x3.size())
         x = self.max_pool_2x2(x3)
         x4 = self.down_conv_4(x) #
-        print(x4.size())
         x = self.max_pool_2x2(x4)
         x = self.down_conv_5(x)
-        print("bottleneck:",x.size())
 
         # decoder
         x = self.up_trans_1(x)
         y = crop_tensor(x4,x)
         x = self.up_conv_1(torch.cat([y,x],1))
-        print(x.size())
         
         x = self.up_trans_2(x)
         y = crop_tensor(x3,x)
         x = self.up_conv_2(torch.cat([y,x],1))
-        print(x.size())
 
         x = self.up_trans_3(x)
         y = crop_tensor(x2,x)
         x = self.up_conv_3(torch.cat([y,x],1))
-        print(x.size())
 
         x = self.up_trans_4(x)
         y = crop_tensor(x1,x)
         x = self.up_conv_4(torch.cat([y,x],1))
-        print(x.size())
 
         x = self.output(x)
-        print(x.size())
         return x
 
 def test():

@@ -183,56 +183,30 @@ train_logfile = os.path.splitext(path_model)[0]+"_log.txt"
 if not os.path.isfile(path_model):
     # if no: train new model with params
     print("training new model at %s..." % path_model)
+    
     # import chosen model implementation
     if param_model == "persson":
-        from persson_unet import train_persson
-        train_persson.LEARNING_RATE = param_lr
-        train_persson.BATCH_SIZE = param_bs
-        train_persson.pos_weight = param_weight
-        train_persson.NUM_EPOCHS = param_epochs
-        train_persson.TRAIN_IMG_DIR = tiles_path+"/imgs/"
-        train_persson.TRAIN_MASK_DIR = tiles_path+"/masks/"
-        train_persson.VAL_IMG_DIR = val_tiles_path+"/imgs/"
-        train_persson.VAL_MASK_DIR = val_tiles_path+"/masks/"
-        train_persson.logfile = train_logfile
-        os.makedirs("saved_images/pred_tiles/", exist_ok=True) # todo: this should be changed in training implementation
-        os.makedirs("checkpoints/", exist_ok=True)
-        # run training 
-        train_persson.main()
-    elif param_model == "persson_32-64-128-256":
-        pass
+        from persson_unet import train_persson as train
     if param_model == "ronneberger":
-        from persson_unet import train_ronneberger
-        train_ronneberger.LEARNING_RATE = param_lr
-        train_ronneberger.BATCH_SIZE = param_bs
-        train_ronneberger.pos_weight = param_weight
-        train_ronneberger.NUM_EPOCHS = param_epochs
-        train_ronneberger.TRAIN_IMG_DIR = tiles_path+"/imgs/"
-        train_ronneberger.TRAIN_MASK_DIR = tiles_path+"/masks/"
-        train_ronneberger.VAL_IMG_DIR = val_tiles_path+"/imgs/"
-        train_ronneberger.VAL_MASK_DIR = val_tiles_path+"/masks/"
-        train_ronneberger.logfile = train_logfile
-        os.makedirs("saved_images/pred_tiles/", exist_ok=True) # todo: this should be changed in training implementation
-        os.makedirs("checkpoints/", exist_ok=True)
-        # run training 
-        train_ronneberger.main()
+        from persson_unet import train_ronneberger as train
     elif param_model == "eth":
-        from persson_unet import train_eth
-        train_eth.LEARNING_RATE = param_lr
-        train_eth.BATCH_SIZE = param_bs
-        train_eth.pos_weight = param_weight
-        train_eth.NUM_EPOCHS = param_epochs
-        train_eth.TRAIN_IMG_DIR = tiles_path+"/imgs/"
-        train_eth.TRAIN_MASK_DIR = tiles_path+"/masks/"
-        train_eth.VAL_IMG_DIR = val_tiles_path+"/imgs/"
-        train_eth.VAL_MASK_DIR = val_tiles_path+"/masks/"
-        train_eth.logfile = train_logfile
-        os.makedirs("saved_images/pred_tiles/", exist_ok=True) # todo: this should be changed in training implementation
-        os.makedirs("checkpoints/", exist_ok=True)
-        # run training 
-        train_eth.main()
+        from persson_unet import train_eth as train
     else:
         raise NotImplementedError("can't find model implementation: %s" % param_model)
+    
+    train.LEARNING_RATE = param_lr
+    train.BATCH_SIZE = param_bs
+    train.pos_weight = param_weight
+    train.NUM_EPOCHS = param_epochs
+    train.TRAIN_IMG_DIR = tiles_path+"/imgs/"
+    train.TRAIN_MASK_DIR = tiles_path+"/masks/"
+    train.VAL_IMG_DIR = val_tiles_path+"/imgs/"
+    train.VAL_MASK_DIR = val_tiles_path+"/masks/"
+    train.logfile = train_logfile
+    os.makedirs("saved_images/pred_tiles/", exist_ok=True) # todo: this should be changed in training implementation
+    os.makedirs("checkpoints/", exist_ok=True)
+    # run training 
+    train.main()
     # todo: set data augmentation
     # todo: keep track of dice score and avg loss over the epochs
 
@@ -278,11 +252,18 @@ else:
     print("test tiles present") # todo: folder present, but is it correctly tiled?
 
 # run predictions on test tiles
-import persson_unet.predict_eth
-persson_unet.predict_eth.VAL_IMG_DIR = tiles_path+"/imgs/"
-persson_unet.predict_eth.VAL_MASK_DIR = tiles_path+"/masks/"
-persson_unet.predict_eth.model_path = path_model #load model from best epoch
-test_dice = persson_unet.predict_eth.main() # returns test score
+if param_model == "persson":
+    import persson_unet.predict_persson as predict
+if param_model == "ronneberger":
+    import persson_unet.predict_ronneberger as predict
+elif param_model == "eth":
+    import persson_unet.predict_eth as predict
+else:
+    raise NotImplementedError("can't find model implementation: %s" % param_model)
+predict.VAL_IMG_DIR = tiles_path+"/imgs/"
+predict.VAL_MASK_DIR = tiles_path+"/masks/"
+predict.model_path = path_model #load model from best epoch
+test_dice = predict.main() # returns test score
 
 # merge test tiles to full predictions
 import merge_tiles

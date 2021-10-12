@@ -120,7 +120,7 @@ def main():
 
         # print some examples to a folder
         save_predictions_as_imgs(
-            val_loader, model, folder="saved_images/", device=DEVICE
+            val_loader, model, folder="saved_images/pred_tiles/", device=DEVICE
         )
 
 
