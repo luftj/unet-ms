@@ -237,17 +237,21 @@ if not os.path.isfile(path_model):
 synthesise_data.synthesise_maps_if_necessary(quads_path[map_series],test_path,"test")
 
 # check if test data is tiled with same settings
-tiles_path = test_path + "tiles_%s_%s_%s/" % (param_tile_size, param_tile_offsets, tile_fg_thresh)
-if not os.path.isdir(tiles_path): # todo: and check for files inside?
+test_tiles_path = test_path + "tiles_%s_%s_%s/" % (param_tile_size, param_tile_offsets, tile_fg_thresh)
+if not os.path.isdir(test_tiles_path): # todo: and check for files inside?
     # if no: tile test data
-    os.makedirs(tiles_path)
-    os.makedirs(tiles_path+"/imgs/")
-    os.makedirs(tiles_path+"/masks/")
+    os.makedirs(test_tiles_path)
+    os.makedirs(test_tiles_path+"/imgs/")
+    os.makedirs(test_tiles_path+"/masks/")
     # tile each map+mask
     offsets = list(map(lambda o: o.split("-"), param_tile_offsets))
     for map_file in os.listdir(test_path):
         for x_offset, y_offset in offsets:
-            tile_images.tile_and_save(test_path+map_file, tiles_path, tile_size=param_tile_size, x_offset=int(x_offset), y_offset=int(y_offset), offset_step=200)
+            tile_images.tile_and_save(test_path+map_file,
+                                    test_tiles_path, 
+                                    tile_size=param_tile_size, 
+                                    x_offset=int(x_offset), y_offset=int(y_offset), 
+                                    offset_step=param_size_prediction)
 else:
     print("test tiles present") # todo: folder present, but is it correctly tiled?
 
@@ -260,15 +264,14 @@ elif param_model == "eth":
     import persson_unet.predict_eth as predict
 else:
     raise NotImplementedError("can't find model implementation: %s" % param_model)
-predict.VAL_IMG_DIR = tiles_path+"/imgs/"
-predict.VAL_MASK_DIR = tiles_path+"/masks/"
+predict.VAL_IMG_DIR = test_tiles_path+"/imgs/"
+predict.VAL_MASK_DIR = test_tiles_path+"/masks/"
 predict.model_path = path_model #load model from best epoch
 test_dice = predict.main() # returns test score
-
 # merge test tiles to full predictions
 import merge_tiles
 os.makedirs(path_output + "/test/", exist_ok=True)
-merge_tiles.merge_dir("predictions/pred_tiles/", path_output + "/test/")
+merge_tiles.merge_dir("predictions/", path_output + "/test/")
 print("saved test predictions to %s" % (path_output + "/test/"))
 shutil.rmtree("predictions/")
 

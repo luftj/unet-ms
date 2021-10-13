@@ -129,9 +129,9 @@ def main():
             log.write("%d,%f,%f\n" % (epoch, score, avg_loss))
 
             # print some examples to a folder
-            save_predictions_as_imgs(
-                val_loader, model, folder="saved_images/pred_tiles/", device=DEVICE, maskcrop=maskcrop
-            )
+            # save_predictions_as_imgs(
+            #     val_loader, model, folder="saved_images/pred_tiles/", device=DEVICE, maskcrop=maskcrop
+            # )
 
 
 if __name__ == "__main__":

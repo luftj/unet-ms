@@ -1,7 +1,8 @@
 import torch
 import torchvision
-from dataset import CarvanaDataset
+from persson_unet.dataset import CarvanaDataset
 from torch.utils.data import DataLoader
+import re
 
 def save_checkpoint(state, filename="my_checkpoint.pth.tar"):
     print("=> Saving checkpoint")
@@ -51,6 +52,7 @@ def get_loaders(
         image_dir=train_dir,
         mask_dir=train_maskdir,
         transform=train_transform,
+        maskcrop=maskcrop
     )
 
     train_loader = DataLoader(
@@ -78,6 +80,44 @@ def get_loaders(
 
     return train_loader, val_loader
 
+def score_and_save(loader, model, folder="predictions/", device="cuda", maskcrop=None):
+    num_correct = 0
+    num_pixels = 0
+    dice_score = 0
+
+    print("starting prediction...")
+    model.eval()
+    with torch.no_grad():
+        for x, y, n in loader:
+            x = x.to(device)
+            y = y.to(device).unsqueeze(1)
+            preds = torch.sigmoid(model(x))
+            preds = (preds > 0.5).float()
+            num_correct += (preds == y).sum()
+            num_pixels += torch.numel(preds)
+            dice_score += (2 * (preds * y).sum()) / (
+                (preds + y).sum() + 1e-8
+            )
+
+            if maskcrop:
+                coords = re.findall(r"[0-9]+-[0-9]+",n[0])[0].split("-")
+                new_coords = "%d-%d"%(int(coords[0])+maskcrop,int(coords[1])+maskcrop)
+                filename = n[0].replace("%s-%s"%(coords[0],coords[1]),new_coords)
+            else:
+                filename = n[0]
+            
+            torchvision.utils.save_image(
+                preds, f"{folder}/{filename}.png"
+            )
+
+    model.train()
+    print(
+        f"Got {num_correct}/{num_pixels} with acc {num_correct/num_pixels*100:.2f}"
+    )
+    score = dice_score/len(loader)
+    print(f"Dice score: {score}")
+    return score
+
 def check_accuracy(loader, model, device="cuda"):
     num_correct = 0
     num_pixels = 0
@@ -85,7 +125,7 @@ def check_accuracy(loader, model, device="cuda"):
     model.eval()
 
     with torch.no_grad():
-        for x, y in loader:
+        for x, y, n in loader:
             x = x.to(device)
             y = y.to(device).unsqueeze(1)
             preds = torch.sigmoid(model(x))
@@ -99,8 +139,10 @@ def check_accuracy(loader, model, device="cuda"):
     print(
         f"Got {num_correct}/{num_pixels} with acc {num_correct/num_pixels*100:.2f}"
     )
-    print(f"Dice score: {dice_score/len(loader)}")
+    score = dice_score/len(loader)
+    print(f"Dice score: {score}")
     model.train()
+    return score
 
 def save_predictions_as_imgs(
     loader, model, folder="saved_images/pred_tiles/", device="cuda", maskcrop=None

@@ -10,6 +10,7 @@ from persson_unet.utils import (
     get_val_loader,
     check_accuracy,
     save_predictions_as_imgs,
+    score_and_save
 )
 import os
 
@@ -43,8 +44,6 @@ def main():
     )
 
     model = UNET(in_channels=3, out_channels=1).to(DEVICE)
-    loss_fn = nn.BCEWithLogitsLoss(pos_weight=(torch.cuda.FloatTensor([pos_weight]) if DEVICE=="cuda" else torch.FloatTensor([pos_weight])))
-    optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
     val_loader = get_val_loader(
         VAL_IMG_DIR,
@@ -59,16 +58,18 @@ def main():
     load_checkpoint(torch.load(model_path), model)
 
     # check accuracy
-    score = check_accuracy(val_loader, model, device=DEVICE)
+    # score = check_accuracy(val_loader, model, device=DEVICE)
 
     # print predictions to a folder
-    os.makedirs("predictions/pred_tiles/", exist_ok=True)
-    save_predictions_as_imgs(
+    os.makedirs("predictions/", exist_ok=True)
+    # save_predictions_as_imgs(
+    #     val_loader, model, folder="predictions/", device=DEVICE, maskcrop=maskcrop
+    # )
+    score = score_and_save(
         val_loader, model, folder="predictions/", device=DEVICE, maskcrop=maskcrop
     )
 
     return float(score)
-
 
 if __name__ == "__main__":
     main()

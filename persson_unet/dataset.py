@@ -3,12 +3,13 @@ from PIL import Image
 from torch.utils.data import Dataset
 import numpy as np
 
-class CarvanaDataset(Dataset, maskcrop=0):
-    def __init__(self, image_dir, mask_dir, transform=None):
+class CarvanaDataset(Dataset):
+    def __init__(self, image_dir, mask_dir, transform=None, maskcrop=0):
         self.image_dir = image_dir
         self.mask_dir = mask_dir
         self.transform = transform
         self.images = os.listdir(image_dir)
+        self.maskcrop = maskcrop
 
     def __len__(self):
         return len(self.images)
@@ -25,7 +26,8 @@ class CarvanaDataset(Dataset, maskcrop=0):
             image = augmentations["image"]
             mask = augmentations["mask"]
 
-        mask = mask[maskcrop:-maskcrop,maskcrop:-maskcrop]
+        if self.maskcrop:
+            mask = mask[self.maskcrop:-self.maskcrop,self.maskcrop:-self.maskcrop]
 
-        return image, mask
+        return image, mask, os.path.splitext(self.images[index])[0]
 
