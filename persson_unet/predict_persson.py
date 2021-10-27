@@ -63,7 +63,7 @@ def main():
     # score = check_accuracy(val_loader, model, device=DEVICE)
 
     # print predictions to a folder
-    os.makedirs("predictions/pred_tiles/", exist_ok=True)
+    os.makedirs("predictions/", exist_ok=True)
     # save_predictions_as_imgs(
     #     val_loader, model, folder="predictions/", device=DEVICE, maskcrop=maskcrop
     # )

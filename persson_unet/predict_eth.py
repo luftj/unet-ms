@@ -10,6 +10,7 @@ from persson_unet.utils import (
     get_val_loader,
     check_accuracy,
     save_predictions_as_imgs,
+    score_and_save
 )
 import os
 
@@ -59,12 +60,15 @@ def main():
     load_checkpoint(torch.load(model_path), model)
 
     # check accuracy
-    score = check_accuracy(val_loader, model, device=DEVICE)
+    # score = check_accuracy(val_loader, model, device=DEVICE)
 
     # print predictions to a folder
-    os.makedirs("predictions/pred_tiles/", exist_ok=True)
-    save_predictions_as_imgs(
-        val_loader, model, folder="predictions/", device=DEVICE, maskcrop=maskcrop
+    os.makedirs("predictions/", exist_ok=True)
+    # save_predictions_as_imgs(
+    #     val_loader, model, folder="predictions/", device=DEVICE, maskcrop=maskcrop
+    # )
+    score = score_and_save(
+        val_loader, model, folder="predictions/", device=DEVICE
     )
 
     return float(score)
