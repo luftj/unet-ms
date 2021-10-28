@@ -45,22 +45,22 @@ def plot_template_matches(keypoints_q, keypoints_r, inliers, query_image, refere
     keypoints_r = np.fliplr(keypoints_r)
     matches = np.array(list(zip(range(len(keypoints_q)),range(len(keypoints_r)))))
 
-    print(f"Number of matches: {matches.shape[0]}")
-    print(f"Number of inliers: {inliers.sum()}")
-    fig, ax = plt.subplots(nrows=2, ncols=1)
+    # print(f"Number of matches: {matches.shape[0]}")
+    # print(f"Number of inliers: {inliers.sum()}")
+    # fig, ax = plt.subplots(nrows=2, ncols=1)
 
-    plot_matches(ax[0], (255-query_image), (255-reference_image_border), keypoints_q, keypoints_r,
-                matches)#,alignment="vertical")
-    plot_matches(ax[1], (255-query_image), (255-reference_image_border), keypoints_q, keypoints_r,
-                matches[inliers])#,alignment="vertical")
-    # y = query_image.shape[0]
-    # plt.plot([500,1000,1000,500,500],[y,y,0,0,y],"r",linewidth=2)
-    # plt.plot([530,970,970,530,530],[y-30,y-30,30,30,y-30],"g",linewidth=1)
-    # plt.xticks([],[])
-    # plt.yticks([],[])
-    # for spine in ax.spines:
-    #     ax.spines[spine].set_visible(False)
-    plt.savefig(plot_dir+"/template_matches.png")
+    # plot_matches(ax[0], (255-query_image), (255-reference_image_border), keypoints_q, keypoints_r,
+    #             matches)#,alignment="vertical")
+    # plot_matches(ax[1], (255-query_image), (255-reference_image_border), keypoints_q, keypoints_r,
+    #             matches[inliers])#,alignment="vertical")
+    # # y = query_image.shape[0]
+    # # plt.plot([500,1000,1000,500,500],[y,y,0,0,y],"r",linewidth=2)
+    # # plt.plot([530,970,970,530,530],[y-30,y-30,30,30,y-30],"g",linewidth=1)
+    # # plt.xticks([],[])
+    # # plt.yticks([],[])
+    # # for spine in ax.spines:
+    # #     ax.spines[spine].set_visible(False)
+    # plt.savefig(plot_dir+"/template_matches.png")
 
 def estimate_transform(keypoints_q, keypoints_r, query_image, reference_image, plot_dir=None):
     from skimage.measure import ransac
@@ -147,12 +147,15 @@ def calc_scores_dir(predictions_dir, truth_dir, plot_dir=None):
     results = []
 
     for pred_file_name in os.listdir(predictions_dir):
+        if not os.path.splitext(pred_file_name)[-1] in [".tif",".png"] or not "_mask" in pred_file_name:
+            continue
         print("scoring %s" % pred_file_name)
-        truth_file = list(filter(lambda x: (os.path.splitext(pred_file_name)[0] +"_mask" == os.path.splitext(x)[0]) , os.listdir(truth_dir)))
+        truth_file = list(filter(lambda x: (os.path.splitext(pred_file_name.replace("_mask",""))[0] +"_mask" == os.path.splitext(x)[0]) , os.listdir(truth_dir)))
         if len(truth_file) == 0:
             print(pred_file_name, "couldn't find truth mask!")
             continue
         pred_file = predictions_dir + "/" + pred_file_name
+        truth_label = os.path.splitext(truth_file[0])[0].replace("_mask","")
         truth_file = truth_dir + "/" + truth_file[0]
 
         pred_img = Image.open(pred_file)
@@ -160,31 +163,41 @@ def calc_scores_dir(predictions_dir, truth_dir, plot_dir=None):
         # hack: alleviate rescaling effects
         # pred_img = pred_img.filter(ImageFilter.MinFilter(7))
         # truth_img = truth_img.filter(ImageFilter.MaxFilter(7))
-        pred_array = np.array(pred_img, dtype=np.int32)[:,:,0] # prediction has 3 channels, but they are all the same
+        pred_array = np.array(pred_img, dtype=np.int32)
+        if len(pred_array.shape)==3:
+            pred_array = pred_array[:,:,0] # prediction has 3 channels, but they are all the same
         truth_array = np.array(truth_img, dtype=np.int32)
-        intersection = np.sum(pred_array & truth_array)
-        union = np.sum(pred_array | truth_array)
+        intersection = np.sum(np.logical_and(pred_array,truth_array))
+        union = np.sum(np.logical_or(pred_array,truth_array))
         iou = intersection/union
-        # print("IoU:", iou)
         dice = 2*iou/(1+iou)
+        # print("IoU:", iou)
         # print("Dice:", dice)
 
         if plot_dir:
             from matplotlib import pyplot as plt
             difference = np.zeros((*pred_array.shape,3), dtype=np.int32)
-            difference[:,:,0] = np.subtract(pred_array, truth_array)
-            difference[:,:,1] = np.subtract(truth_array, pred_array)
+            difference[:,:,0] = pred_array#np.subtract(pred_array, truth_array)
+            difference[:,:,1] = truth_array#np.subtract(truth_array, pred_array)
+            difference[:,:,2] = (truth_array & pred_array)
             plt.imshow(difference)
             fpArtist = plt.Line2D((0,1),(0,0), color='r')
             fnArtist = plt.Line2D((0,1),(0,0), color='g')
-            plt.legend([fpArtist,fnArtist], ['FP', 'FN'])
-            plt.show()
+            mArtist = plt.Line2D((0,1),(0,0), color='w')
+            plt.legend([fpArtist,fnArtist,mArtist], ['FP', 'FN', "match"])
+            plt.savefig("%s/%s_fpfn.png" % (plot_dir,os.path.splitext(pred_file_name)[0]))
+            # plt.show()
+            plt.close()
         
         # ransac score as with MaRE
-        num_matches, ransac_score_result = ransac_score( np.array(pred_img)[:,:,0], np.array(truth_img), plot_dir=plot_dir)
+        pred_img = np.array(pred_img)
+        if len(pred_img.shape)==3:
+            pred_img = pred_img[:,:,0] # prediction has 3 channels, but they are all the same
+        num_matches, ransac_score_result = ransac_score( pred_img, np.array(truth_img), plot_dir=plot_dir)
 
         # todo: can we get an index score as well? train index on all quads?
-        index_rank = -1
+        from mare.indexing import search_mask_in_index
+        index_rank = search_mask_in_index(pred_img, truth_label)
 
         result = {  "file": pred_file_name,
                     "iou": iou,

@@ -1,4 +1,5 @@
 import json
+from json.decoder import JSONDecodeError
 import os
 import cv2
 import numpy as np
@@ -8,7 +9,7 @@ import logging
 from osmtogeojson import osmtogeojson
 from pyproj import Transformer
 
-from config import path_osm, proj_map, proj_osm, proj_sheets, osm_query, force_osm_download, osm_url, draw_ocean_polygon, download_timeout, fill_polys, water_polys_file
+from config import path_osm, proj_map, proj_osm, proj_sheets, osm_query, force_osm_download, osm_url, draw_ocean_polygon, download_timeout, fill_polys
 
 transform_osm_to_map = Transformer.from_proj(proj_osm, proj_map, skip_equivalent=True, always_xy=True)
 transform_sheet_to_osm = Transformer.from_proj(proj_sheets, proj_osm, skip_equivalent=True, always_xy=True)
@@ -23,24 +24,24 @@ def get_from_osm(bbox=[16.3,54.25,16.834,54.5], url = osm_url):
         maxxy = transform_sheet_to_osm.transform(bbox[2], bbox[3]) # reproject upper right bbox corner
         bbox = minxy+maxxy
 
-    print("getting osm data for bbox", bbox)
-
     # prepare polygon files of ocean cover
     ocean_file_path = "%s/water_poly_%s.geojson" % (path_osm, "-".join(map(str,bbox)))
     if draw_ocean_polygon and not os.path.isfile( ocean_file_path ):
         clip_ocean_poly(bbox)
     
-    # don't query if we already have the data on disk
-    if not force_osm_download and os.path.isfile( data_path ):
-        logging.debug("fetching osm data from disk: %s" % data_path)
-        with open(data_path, encoding="utf-8") as file:
-            json_data = json.load(file)
-            return json_data
+    try:
+        # don't query if we already have the data on disk
+        if not force_osm_download and os.path.isfile( data_path ):
+            logging.debug("fetching osm data from disk: %s" % data_path)
+            with open(data_path, encoding="utf-8") as file:
+                json_data = json.load(file)
+                return json_data
+    except JSONDecodeError:
+        print("error in OSM data on disk, trying redownlaoding...")
 
     sorted_bbox = ",".join(map(str,[bbox[1], bbox[0], bbox[3], bbox[2]]))
     query = osm_query.replace("{{bbox}}","%s" % sorted_bbox)
     logging.debug("osm query: %s" % query)
-    # print(query)
 
     while True:
         try:
@@ -83,12 +84,31 @@ def coord_to_point(coords, bbox, img_size, castint=True):
         y = int(y)
     return (x,y)
 
+def coord_to_point_array(points, bbox, img_size, castint=True):
+    transform_func_vector = np.vectorize(transform_osm_to_map.transform)
+    points = np.asarray(points)
+    if proj_osm != proj_map: # reproject osm coordinates. This gets called many times! expensive even with skip_equivalent!
+        points_x,points_y = transform_func_vector(points[:,0],points[:,1])
+        points = np.vstack((points_x,points_y)).T
+
+    points[:,0] -= bbox[0] # clip values to relative space
+    points[:,1] -= bbox[1]
+    # points[:,0] /= (bbox[2]-bbox[0]) 
+    # points[:,1] /= (bbox[3]-bbox[1]) 
+    points[:,0] *= img_size[0] / (bbox[2]-bbox[0]) # scale values to be within relativ space
+    points[:,1] *= -img_size[1] / (bbox[3]-bbox[1]) 
+    points[:,1] += img_size[1] # flipped y axis for image space
+
+    if castint:
+        points = points.astype(int)
+    return points
+
 def clip_ocean_poly(bbox):
+    water_polys_file = "E:/data/water_polygons/simplified_water_wgs84.geojson"
     coords = " ".join(map(str,bbox))
     cropped_output_file = "%s/water_poly_%s.geojson" % (path_osm, coords.replace(" ","-"))
     print("clipping ocean...")
     command = "ogr2ogr -spat %s -clipsrc %s %s %s" % (coords, coords, cropped_output_file, water_polys_file)
-    #-f 'GeoJSON'
     print(command)
     os.system(command)
 
@@ -98,55 +118,6 @@ def paint_ocean_poly(bbox):
     with open(cropped_output_file) as fr:
         data = json.load(fr)
     return data["features"]
-
-def merge_outline(geometries_):
-    geometries = geometries_.copy()
-    all_outlines = []
-    outline = []
-    idx = -1
-    while len(geometries) > 0:
-        old_len = len(geometries)
-        idx += 1
-        if idx >= len(geometries):
-            idx=0
-
-        g = geometries[idx]
-        if g["type"] != "LineString": 
-            geometries.remove(g)
-            continue
-        elif len(outline) == 0:
-            outline.extend(g["coordinates"])
-            geometries.remove(g)
-            continue
-
-        if g["coordinates"][0] == outline[-1]:
-            outline.extend(g["coordinates"])
-            geometries.remove(g)
-        elif g["coordinates"][-1] == outline[0]:
-            outline = g["coordinates"] + outline
-            geometries.remove(g)
-        else:
-            for o in all_outlines:
-                if g["coordinates"][0] == o[-1]:
-                    o.extend(g["coordinates"])
-                    geometries.remove(g)
-                    break
-                elif g["coordinates"][-1] == o[0]:
-                    o = g["coordinates"] + o
-                    geometries.remove(g)
-                    break
-
-        # print("g", g["type"], type(g["coordinates"]))
-        # print(idx, old_len)
-        if old_len == len(geometries):
-            # no change, start new outline
-            all_outlines.append(outline)
-            outline = []
-
-    # print(all_outlines)
-    print(len(all_outlines))
-    return all_outlines
-
 
 def paint_features(json_data, bbox=[16.3333,54.25,16.8333333,54.5], img_size=(1000,850)):
     if draw_ocean_polygon:
@@ -163,22 +134,18 @@ def paint_features(json_data, bbox=[16.3333,54.25,16.8333333,54.5], img_size=(10
         minxy = transform_sheet_to_map.transform(bbox[0], bbox[1]) # reproject lower left bbox corner
         maxxy = transform_sheet_to_map.transform(bbox[2], bbox[3]) # reproject upper right bbox corner
         bbox = minxy+maxxy
-        
-    print("painting osm data into bbox", bbox)
 
     image = np.zeros(shape=img_size[::-1], dtype=np.uint8)
     for feature in json_data["features"]:
         try:
-            # if "Lake" in feature["properties"].get("name",""):
-            #     print(feature["properties"])
             if feature["geometry"]["type"] == "LineString":
                 points = [ coord_to_point(p,bbox,img_size) for p in feature["geometry"]["coordinates"] ]
                 if "waterway" in feature["properties"] and feature["properties"]["waterway"] == "river":
-                    thickness = 5  
+                    thickness = 2  
                 elif "natural" in feature["properties"] and feature["properties"]["natural"] == "coastline":
-                    thickness = 0 if draw_ocean_polygon else 3
+                    thickness = 0 if draw_ocean_polygon else 5
                 else:
-                    thickness = 3 # todo: move these to config
+                    thickness = 1 # todo: move these to config
                 points = np.array(points)
                 cv2.polylines(image,[points],False,255,thickness=thickness)
             elif feature["geometry"]["type"] == "Polygon":
@@ -196,6 +163,7 @@ def paint_features(json_data, bbox=[16.3333,54.25,16.8333333,54.5], img_size=(10
                         cv2.fillPoly(image, [points], 255)
                     else:
                         cv2.polylines(image,[points],True,255,thickness=3)
+
                 # draw holes
                 for hole in feature["geometry"]["coordinates"][1:]:
                     points = [ coord_to_point(p,bbox,img_size) for p in hole]
@@ -204,8 +172,6 @@ def paint_features(json_data, bbox=[16.3333,54.25,16.8333333,54.5], img_size=(10
                         cv2.fillPoly(image, [points], 0)
                     else: # e.g. islands in lakes
                         cv2.polylines(image,[points],True,255,thickness=3)
-                # if feature["properties"].get("name","") =="Lake Michigan":
-                #     print(len(feature["geometry"]["coordinates"][0]))
                 
             elif feature["geometry"]["type"] == "MultiPolygon":
                 for poly in feature["geometry"]["coordinates"][0]:
@@ -216,46 +182,8 @@ def paint_features(json_data, bbox=[16.3333,54.25,16.8333333,54.5], img_size=(10
                         cv2.fillPoly(image, [points], 255)
                     else:
                         cv2.polylines(image,[points],True,255,thickness=3)
-            elif feature["geometry"]["type"] == "GeometryCollection":
-                # return None
-                # print(feature["features"])
-                # print(type(feature["geometry"]["geometries"]))
-                # print((feature["geometry"]["geometries"][0]))
-                # print(feature["properties"])
-
-                outlines = merge_outline(feature["geometry"]["geometries"])
-                # sub_features = [{
-                #     "properties":feature["properties"],
-                #     "geometry": {
-                #         "type":"Polygon",
-                #         "coordinates":[outline]
-                #         }
-                #     } for outline in outlines]
-                # print(*[x["type"] for x in feature["geometry"]["geometries"]])
-                # sub_features = [ subfeature ]#feature["geometry"]["geometries"]]
-                # coll_img = np.zeros(shape=img_size[::-1], dtype=np.uint8)
-                # outlines = [sum(outlines,[])]
-                for outline in outlines:
-                    points = [ coord_to_point(p,bbox,img_size) for p in outline ]
-                    # print(points)
-                    points = np.array(points)
-                    # cv2.fillConvexPoly(image, points, 255)
-                    cv2.polylines(image, [points], False, 255, thickness=3)
-                    # cv2.fillPoly(image, [points], 255)
-                # coll_img = paint_features({"features": sub_features}, bbox=bbox, img_size=img_size)
-                # from matplotlib import pyplot as plt
-                # plt.imshow(coll_img)
-                # plt.show()
-                # image = image | coll_img
-                # draw holes
-                for hole in [g["coordinates"][0] for g in feature["geometry"]["geometries"] if g["type"] == "Polygon"]:
-                    points = [ coord_to_point(p,bbox,img_size) for p in hole]
-                    points = np.array(points)
-                    cv2.polylines(image, [points], False, 255, thickness=3)
-                    # cv2.fillPoly(image, [points], 0)
             else:
-                print(feature.get("properties",{"name":"no props"}).get("name","no name"))
-                raise NotImplementedError("drawing feature type not implemented %s!" % feature["geometry"].get("type","no geomtype"))
+                raise NotImplementedError("drawing feature type not implemented %s!" % feature["geometry"]["type"])
         except Exception as e:
             logging.error(e)
             typ = feature["geometry"]["type"] if (feature is dict and "geometry" in feature and "type" in feature["geometry"]) else "no type"
@@ -280,7 +208,7 @@ if __name__ == "__main__":
     # sheets_file = "E:/data/dr500/blattschnitt_kdr500_wgs84.geojson"
     # bboxes = find_sheet.get_bboxes_from_json(sheets_file)
     bbox_dict = find_sheet.get_dict(sheets_file, True)
-    bboxes = [bbox_dict["143"]]
+    bboxes = [bbox_dict["258"]]
     # bboxes = bboxes[:10]
     if len(sys.argv) == 1:
         for bbox in progress(bboxes):
@@ -290,6 +218,7 @@ if __name__ == "__main__":
     # cv2.waitKey(-1)
     outpath = "test_osm/%s.png" % bbox
     cv2.imwrite(outpath, img)
+    print("saved to %s" % outpath)
     # georef this to allow easy check
     from registration import make_worldfile
     make_worldfile(outpath, bbox,[0,img.shape[0],img.shape[1],0])

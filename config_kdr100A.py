@@ -1,5 +1,5 @@
-path_osm = "E:/data/train/synthdata/kdr100B/"
-path_osm = "/media/ecl2/DATA/jonas/kdr100B/osm/"
+path_osm = "E:/data/train/synthdata/kdr100A/"
+path_osm = "/media/ecl2/DATA/jonas/kdr100A/osm/"
 
 proj_map = "EPSG:4314"#"+proj=longlat +ellps=bessel +towgs84=598.1,73.7,418.2,0.202,0.045,-2.455,6.7 +no_defs" # Potsdam datum
 proj_sheets = "EPSG:4314"#proj_map
@@ -20,8 +20,6 @@ way ({{bbox}}) [waterway=canal] [name];
 way ({{bbox}}) [water=river];
 way ({{bbox}}) [waterway=stream] [name];
 way ({{bbox}}) [natural=coastline];
-way ({{bbox}}) [waterway=ditch];
-way ({{bbox}}) [waterway=drain];
 way ({{bbox}}) [waterway=riverbank];
 );
 out body;
