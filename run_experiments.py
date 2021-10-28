@@ -36,13 +36,13 @@ param_epochs = int(current_exp["epochs"])
 # fixed_train_maps = [] # for comparable training results
 # param_num_test_maps = 3 # if 0, use fixed maps, else sample randomly
 fixed_test_maps = current_exp["test sheets"] # for comparability, or if manually annotated
-if fixed_test_maps: fixed_test_maps = fixed_test_maps.split(",")
+if fixed_test_maps: fixed_test_maps = fixed_test_maps.replace(" ","").split(",")
 else: fixed_test_maps = []
 param_num_test_maps = len(fixed_test_maps) if len(fixed_test_maps) > 0 else 3
 fixed_train_maps = current_exp["training sheets"] # for comparability, or if manually annotated
-if fixed_train_maps: fixed_train_maps = fixed_train_maps.split(",")
+if fixed_train_maps: fixed_train_maps = fixed_train_maps.replace(" ","").split(",")
 else: fixed_train_maps = []
-param_num_train_maps = len(fixed_train_maps) if len(fixed_train_maps) > 0 else 3
+param_num_train_maps = len(fixed_train_maps) if len(fixed_train_maps) > 0 else 10
 
 param_tile_size = current_exp["tile size"]
 param_size_prediction = current_exp["tile size prediction"]
@@ -87,7 +87,7 @@ index_path = {
 }
 valid_map_ext = [".tif",".png"]
 
-print("%d maps found" % len(os.listdir(maps_path[map_series])))
+# print("%d maps found" % len(os.listdir(maps_path[map_series])))
 print("%d valid maps found" % len(list(filter(is_valid_map, os.listdir(maps_path[map_series])))))
 test_path = maps_path[map_series] + "/test/"
 
@@ -99,6 +99,10 @@ test_path = maps_path[map_series] + "/test/"
 # todo: maybe there are no raw maps, because they are preselected
 
 # sample a number of test maps (!= train maps)
+print(os.path.isdir(test_path))
+print(len(list(filter(is_valid_map, os.listdir(test_path)))))
+print(param_num_test_maps)
+print(len(fixed_test_maps))
 if os.path.isdir(test_path) and len(list(filter(is_valid_map, os.listdir(test_path)))) == max(param_num_test_maps,len(fixed_test_maps)):
     print("test maps already selected")
 else:
@@ -117,6 +121,7 @@ else:
 train_path = maps_path[map_series] + "/train/"
 if os.path.isdir(train_path) and len(list(filter(is_valid_map, os.listdir(train_path)))) == max(param_num_train_maps,len(fixed_train_maps)):
     print("train maps already selected")
+    # todo: doesn't check, if it is the correct maps
 else:
     os.makedirs(train_path) # error if exists, because we might get more training maps than we want
     if param_num_train_maps <= 0:
@@ -134,6 +139,7 @@ synthesise_data.synthesise_maps_if_necessary(quads_path[map_series],train_path,"
 # check if data is tiled and filtered with same settings
 # print(param_tile_offsets, type(param_tile_offsets))
 tiles_path = train_path + "tiles_%s_%s_%s/" % (param_tile_size, param_tile_offsets, tile_fg_thresh)
+# todo: doesn't check, if it is the correct maps
 if not os.path.isdir(tiles_path): # todo: and check for files inside?
     os.makedirs(tiles_path)
     os.makedirs(tiles_path+"/imgs/")
@@ -187,7 +193,7 @@ if not os.path.isfile(path_model):
     # import chosen model implementation
     if param_model == "persson":
         from persson_unet import train_persson as train
-    if param_model == "ronneberger":
+    elif param_model == "ronneberger":
         from persson_unet import train_ronneberger as train
     elif param_model == "eth":
         from persson_unet import train_eth as train
@@ -238,6 +244,7 @@ synthesise_data.synthesise_maps_if_necessary(quads_path[map_series],test_path,"t
 
 # check if test data is tiled with same settings
 test_tiles_path = test_path + "tiles_%s_%s_%s/" % (param_tile_size, param_tile_offsets, tile_fg_thresh)
+# todo: doesn't check, if it is the correct maps
 if not os.path.isdir(test_tiles_path): # todo: and check for files inside?
     # if no: tile test data
     os.makedirs(test_tiles_path)
@@ -258,7 +265,7 @@ else:
 # run predictions on test tiles
 if param_model == "persson":
     import persson_unet.predict_persson as predict
-if param_model == "ronneberger":
+elif param_model == "ronneberger":
     import persson_unet.predict_ronneberger as predict
 elif param_model == "eth":
     import persson_unet.predict_eth as predict
