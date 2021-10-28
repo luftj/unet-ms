@@ -57,10 +57,23 @@ def get_pixel_from_raster(georef_image_path, lonlat):
 
     return xy
 
+def get_edition(map_name, editions_list):
+    # get the edition of the given map
+    if not editions_list:
+        return "unknown edition"
+    with open(editions_list) as fr:
+        for line in fr:
+            line=line.strip()
+            name,edition = line.split(",")
+            if map_name == name:
+                return edition
+    return "unknown edition"
+
 def synthesise_all(maps_dir, imgs_dir, quads_path):
     synthesise_list(maps_dir, imgs_dir, quads_path, file_list=os.listdir(maps_dir))
 
 def synthesise_list(maps_dir, imgs_dir, quads_path, file_list):
+    editions_list=config.editions_list
     # load quadrangles data
     with open(quads_path, encoding="utf8") as fr:
         quadrangles = { f["properties"][config.quadrangles_key] : f["geometry"]["coordinates"][0] for f in json.load(fr)["features"]}
@@ -70,10 +83,17 @@ def synthesise_list(maps_dir, imgs_dir, quads_path, file_list):
         if not os.path.splitext(file)[-1] in valid_ext:
             continue
         # map_name = file.split("_")[1] # this is only for usgs100
-        map_name = os.path.splitext(file)[0] #this si for kdro100
+        map_name = os.path.splitext(file)[0] #this is for kdr100
         # map_name = map_name.replace("St ","Saint ")
         print(file)
         print(map_name)
+
+        map_edition=get_edition(map_name, editions_list)
+        if map_edition == "A":
+            import config_kdr100A as config
+        elif map_edition == "B":
+            import config_kdr100B as config
+
         # ret = osm.proj_map = subprocess.run("gdalinfo "+ maps_dir+"/"+file)
         result = subprocess.check_output("gdalinfo \""+ maps_dir+"/"+file+"\"", shell=True)
         # print(result.decode("ascii"))

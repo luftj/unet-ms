@@ -134,7 +134,7 @@ else:
         random_subfiles.sample_random(maps_path[map_series], train_path, param_num_train_maps, fixed_test_maps, nomask=True)
 
 # check if train data has thruth masks
-synthesise_data.synthesise_maps_if_necessary(quads_path[map_series],train_path,"train")
+synthesise_data.synthesise_maps_if_necessary(quads_path[map_series], train_path, "train")
 
 # check if data is tiled and filtered with same settings
 # print(param_tile_offsets, type(param_tile_offsets))
@@ -240,7 +240,7 @@ if not os.path.isfile(path_model):
 #     # if no: abort
 
 # check if test data has truth masks
-synthesise_data.synthesise_maps_if_necessary(quads_path[map_series],test_path,"test")
+synthesise_data.synthesise_maps_if_necessary(quads_path[map_series], test_path, "test")
 
 # check if test data is tiled with same settings
 test_tiles_path = test_path + "tiles_%s_%s_%s/" % (param_tile_size, param_tile_offsets, tile_fg_thresh)

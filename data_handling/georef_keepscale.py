@@ -2,9 +2,9 @@ import os
 from PIL import Image
 
 indirs = [
-"E:/data/deutsches_reich/kdr100_6x2_editions_manualtest/A/test",
+# "E:/data/deutsches_reich/kdr100_6x2_editions_manualtest/A/test",
 # "E:/data/deutsches_reich/kdr100_6x2_editions_manualtest/A/train",
-# "E:/data/deutsches_reich/kdr100_6x2_editions_manualtest/B/test",
+"E:/data/deutsches_reich/kdr100_6x2_editions_manualtest/B/test",
 # "E:/data/deutsches_reich/kdr100_6x2_editions_manualtest/B/train"
 ]
 
@@ -30,17 +30,18 @@ for indir in indirs:
         
         command = 'gdal_translate'
         command += ' -gcp ' + ' -gcp '.join(points) # gcps
-        command += ' -a_srs "+proj=longlat +ellps=bessel +towgs84=598.1,73.7,418.2,0.202,0.045,-2.455,6.7" ' # set target CRS
+        command += ' -a_srs "EPSG:3414" ' # set target CRS
         command += indir+"/"+file
         command += " " + os.path.splitext(indir+"/"+file)[0]+"translate.tif" # temp file name
         os.system(command)
         # os.remove(os.path.splitext(indir+"/"+file)[0]+".tif")
+        # os.remove(os.path.splitext(indir+"/"+file)[0]+"_poly1.tif")
 
         command = "gdalwarp"
         command += ' -tps '
         command += " -ts %d %d " % (width, height) # target resolution
         command += os.path.splitext(indir+"/"+file)[0]+"translate.tif" # temp file name
-        command += " " + os.path.splitext(indir+"/"+file)[0]+"_rpc.tif" # final file name
+        command += " " + os.path.splitext(indir+"/"+file)[0]+"_tps.tif" # final file name
         os.system(command)
         os.remove(os.path.splitext(indir+"/"+file)[0]+"translate.tif")
 
